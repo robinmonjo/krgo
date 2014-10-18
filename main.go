@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"io"
-	//"io/ioutil"
+	"os"
+	"sync"
 
 	"github.com/docker/docker/registry"
 )
@@ -49,9 +50,36 @@ func main() {
 
 	fmt.Println("Image ", IMAGE_ID, " is made of ", len(history), " layers: ", history)
 
-	layerData, err := downloadImageLayer(session, IMAGE_ID, repoEndpoint, tokens)
-	defer layerData.Close()
-	assertErr(err)
+	os.MkdirAll("rootfs", 0700)
+
+	tarLayers := make([]string, 0, len(history))
+	var wg sync.WaitGroup
+
+	for i := len(history) - 1; i >= 0; i-- {
+		imageId := history[i]
+
+		fileName := "./rootfs/layer_" + imageId + ".tar"
+		tarLayers = append(tarLayers, fileName)
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			fmt.Println("Downloading layer ", imageId, " ... ")
+			layerData, err := downloadImageLayer(session, imageId, repoEndpoint, tokens)
+			defer layerData.Close()
+			assertErr(err)
+
+			out, err := os.Create(fileName)
+			defer out.Close()
+
+			io.Copy(out, layerData)
+
+			fmt.Println("done")
+		}()
+	}
+
+	wg.Wait()
 
 	fmt.Println("All good")
 
