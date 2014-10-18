@@ -7,9 +7,7 @@ sudo apt-get update -qq
 echo "Installing base stack"
 
 packagelist=(
-
-	cgroup-lite
-
+	cgroup-lite             #this is important !!
   curl
   build-essential
   bison
