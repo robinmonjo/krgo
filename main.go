@@ -1,18 +1,16 @@
 package main
 
 import (
-	"errors"
 	"io"
 	"log"
 	"os"
-	"os/exec"
-	"sync"
 
+	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/registry"
 )
 
 const (
-	IMAGE_ID    string = "9942dd43ff211ba917d03637006a83934e847c003bef900e4808be8021dca7bd"
+	IMAGE_ID    string = "6c3df001ea12dcf848ff51930954e2129ac8f5717ce98819237d2d5d3e8ddd25"
 	REPOSITORY  string = "ubuntu"
 	ROOTFS_DEST string = "./rootfs"
 )
@@ -42,6 +40,10 @@ func main() {
 
 	//Get back token and endpoint for the repository
 	data, err := session.GetRepositoryData(REPOSITORY)
+	/*for k, v := range data.ImgList {
+		log.Println("key = ", k, " value = ", v.Tag, " - ", v.ID)
+	}*/
+
 	assertErr(err)
 
 	tokens := data.Tokens
@@ -53,54 +55,25 @@ func main() {
 
 	log.Println("Image", IMAGE_ID, "is made of", len(history), "layers:", history)
 
-	os.MkdirAll(ROOTFS_DEST, 0700)
-
-	tarLayers := make([]string, 0, len(history))
-	var wg sync.WaitGroup
+	os.MkdirAll(ROOTFS_DEST, 0777)
 
 	for i := len(history) - 1; i >= 0; i-- {
 		imageId := history[i]
 
-		fileName := ROOTFS_DEST + "/layer_" + imageId + ".tar"
-		tarLayers = append(tarLayers, fileName)
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			log.Println("Downloading layer", imageId, "...")
-			layerData, err := downloadImageLayer(session, imageId, repoEndpoint, tokens)
-			defer layerData.Close()
-			assertErr(err)
-
-			out, err := os.Create(fileName)
-			defer out.Close()
-
-			io.Copy(out, layerData)
-
-			log.Println("done", imageId)
-		}()
-	}
-	wg.Wait()
-
-	log.Print("Extracting layers in a single rootfs ... ")
-
-	for _, tarLayer := range tarLayers {
-		err := untarFile(tarLayer)
+		log.Println("Downloading layer", imageId, "...")
+		layerData, err := downloadImageLayer(session, imageId, repoEndpoint, tokens)
+		defer layerData.Close()
 		assertErr(err)
-		os.Remove(tarLayer)
+
+		log.Println("Untaring layer", imageId)
+		err = archive.Untar(layerData, ROOTFS_DEST, nil)
+		assertErr(err)
+
+		log.Println("done", imageId)
 	}
 
 	log.Println("All good")
 
-}
-
-func untarFile(tarfile string) error {
-	out, err := exec.Command("tar", "xf", tarfile, "-C", ROOTFS_DEST).CombinedOutput()
-	if err != nil {
-		return errors.New(string(out))
-	}
-	return nil
 }
 
 func downloadImageLayer(session *registry.Session, imageId, endpoint string, tokens []string) (io.ReadCloser, error) {
