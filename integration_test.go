@@ -43,7 +43,7 @@ func Test_downloadImage(t *testing.T) {
 
 	for _, imageName := range testImages {
 		fmt.Printf("Testing %v image ... ", imageName)
-		downloadImage(imageName, "tmp_"+imageName, true, assertErrNil, t)
+		downloadImage(imageName, "tmp_test", true, assertErrNil, t)
 		fmt.Printf("Ok\n")
 	}
 
