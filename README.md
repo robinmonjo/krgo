@@ -15,7 +15,10 @@ Default:
 ````
 
 ### Installation
- TODO
+
+````bash
+curl -sL https://github.com/robinmonjo/dlrootfs/releases/download/v1.0/dlrootfs_x86_64.tgz | tar -C /usr/local/bin -zxf -
+````
 
 ### Why dlrootfs ?
 
