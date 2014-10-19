@@ -10,5 +10,9 @@ release:
 
 	rm release/dlrootfs
 
+test:
+	go install
+	go test
+
 clean:
 	rm -rf release
