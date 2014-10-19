@@ -46,7 +46,7 @@ with other container libraries/manager:
 
 - [ ] performance: add some concurrency
 - [x] use cases (nsinit, lxc)
-- [ ] integration tests (closely related to some docker packages, need to find out quickly if a new Docker version breaks things up)
+- [x] integration tests (closely related to some docker packages, need to find out quickly if a new Docker version breaks things up)
 
 ### Warnings
 
