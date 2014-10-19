@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -11,9 +12,20 @@ import (
 	"github.com/docker/docker/registry"
 )
 
-const (
-	ROOTFS_DEST string = "./rootfs"
-)
+var rootfsDest *string = flag.String("d", "./rootfs", "destination of the resulting rootfs directory")
+var imageFullName *string = flag.String("i", "", "name of the image")
+
+func init() {
+	flag.Usage = func() {
+		fmt.Printf("Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>]\n\n")
+		fmt.Printf("Examples:\n")
+		fmt.Printf("\tdlrootfs -i ubuntu  #if no tag, use latest\n")
+		fmt.Printf("\tdlrootfs -i ubuntu:precise\n")
+		fmt.Printf("\tdlrootfs -i dockefile/elasticsearch:latest\n")
+		fmt.Printf("Default:\n")
+		flag.PrintDefaults()
+	}
+}
 
 func assertErr(err error) {
 	if err != nil {
@@ -23,25 +35,21 @@ func assertErr(err error) {
 
 func main() {
 
-	if len(os.Args) != 2 {
-		fmt.Printf("Usage: dlrootfs <image_name>:[<image_tag>]\n")
-		fmt.Printf("Examples:\n")
-		fmt.Printf("\tdlrootfs ubuntu  #if no tag, use latest\n")
-		fmt.Printf("\tdlrootfs ubuntu:precise\n")
-		fmt.Printf("\tdlrootfs dockefile/elasticsearch:latest\n")
+	flag.Parse()
+
+	if *imageFullName == "" {
+		flag.Usage()
 		return
 	}
-
-	imageFullName := os.Args[1]
 
 	var imageName string
 	var imageTag string
 
-	if strings.Contains(imageFullName, ":") {
-		imageName = strings.Split(imageFullName, ":")[0]
-		imageTag = strings.Split(imageFullName, ":")[1]
+	if strings.Contains(*imageFullName, ":") {
+		imageName = strings.Split(*imageFullName, ":")[0]
+		imageTag = strings.Split(*imageFullName, ":")[1]
 	} else {
-		imageName = imageFullName
+		imageName = *imageFullName
 		imageTag = "latest"
 	}
 
@@ -79,7 +87,7 @@ func main() {
 	history, err := session.GetRemoteHistory(imageId, repoEndpoint, tokens)
 	assertErr(err)
 
-	os.MkdirAll(ROOTFS_DEST, 0777)
+	os.MkdirAll(*rootfsDest, 0777)
 
 	cpt := 1
 	for i := len(history) - 1; i >= 0; i-- {
@@ -91,14 +99,14 @@ func main() {
 		assertErr(err)
 
 		fmt.Printf("\tUntaring layer %v\n", layerId)
-		err = archive.Untar(layerData, ROOTFS_DEST, nil)
+		err = archive.Untar(layerData, *rootfsDest, nil)
 		assertErr(err)
 
 		fmt.Printf("\tdone %v\n", layerId)
 		cpt++
 	}
 
-	fmt.Printf("All good, %v:%v in %v\n", imageName, imageTag, ROOTFS_DEST)
+	fmt.Printf("All good, %v:%v in %v\n", imageName, imageTag, *rootfsDest)
 }
 
 func resolveEndpointForImage(imageName string) (*registry.Endpoint, error) {
