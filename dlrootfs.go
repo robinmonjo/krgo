@@ -114,7 +114,7 @@ func main() {
 	}
 
 	fmt.Printf("All good, %v:%v in %v\n", imageName, imageTag, *rootfsDest)
-	fmt.Printf("Image informations: \n %v", string(lastImgData))
+	fmt.Printf("Image informations: \n %v\n", string(lastImgData))
 }
 
 func resolveEndpointForImage(imageName string) (*registry.Endpoint, error) {
