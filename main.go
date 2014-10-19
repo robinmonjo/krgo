@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	IMAGE_NAME  string = "dockerfile/elasticsearch"
 	ROOTFS_DEST string = "./rootfs"
 )
 
@@ -23,14 +22,26 @@ func assertErr(err error) {
 }
 
 func main() {
+
+	if len(os.Args) != 2 {
+		fmt.Printf("Usage: dlrootfs <image_name>:[<image_tag>]\n")
+		fmt.Printf("Examples:\n")
+		fmt.Printf("\tdlrootfs ubuntu  #if no tag, use latest\n")
+		fmt.Printf("\tdlrootfs ubuntu:precise\n")
+		fmt.Printf("\tdlrootfs dockefile/elasticsearch:latest\n")
+		return
+	}
+
+	imageFullName := os.Args[1]
+
 	var imageName string
 	var imageTag string
 
-	if strings.Contains(IMAGE_NAME, ":") {
-		imageName = strings.Split(IMAGE_NAME, ":")[0]
-		imageTag = strings.Split(IMAGE_NAME, ":")[1]
+	if strings.Contains(imageFullName, ":") {
+		imageName = strings.Split(imageFullName, ":")[0]
+		imageTag = strings.Split(imageFullName, ":")[1]
 	} else {
-		imageName = IMAGE_NAME
+		imageName = imageFullName
 		imageTag = "latest"
 	}
 
@@ -70,10 +81,11 @@ func main() {
 
 	os.MkdirAll(ROOTFS_DEST, 0777)
 
+	cpt := 1
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
 
-		fmt.Printf("\tDownloading layer dependant layer %v ...\n", layerId)
+		fmt.Printf("\tDownloading dependant layer %d/%d %v ...\n", cpt, len(history), layerId)
 		layerData, err := downloadImageLayer(session, layerId, repoEndpoint, tokens)
 		defer layerData.Close()
 		assertErr(err)
@@ -83,6 +95,7 @@ func main() {
 		assertErr(err)
 
 		fmt.Printf("\tdone %v\n", layerId)
+		cpt++
 	}
 
 	fmt.Printf("All good, %v:%v in %v\n", imageName, imageTag, ROOTFS_DEST)
