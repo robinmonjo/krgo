@@ -1,3 +1,4 @@
 rootfs
 .vagrant
 vendor
+release
