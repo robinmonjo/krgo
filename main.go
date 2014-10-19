@@ -1,17 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/registry"
 )
 
 const (
-	IMAGE_ID    string = "6c3df001ea12dcf848ff51930954e2129ac8f5717ce98819237d2d5d3e8ddd25"
-	REPOSITORY  string = "ubuntu"
+	IMAGE_NAME  string = "dockerfile/elasticsearch"
 	ROOTFS_DEST string = "./rootfs"
 )
 
@@ -22,13 +23,22 @@ func assertErr(err error) {
 }
 
 func main() {
+	var imageName string
+	var imageTag string
 
-	//resolving docker hub endpoint
-	hostname, _, err := registry.ResolveRepositoryName(REPOSITORY)
+	if strings.Contains(IMAGE_NAME, ":") {
+		imageName = strings.Split(IMAGE_NAME, ":")[0]
+		imageTag = strings.Split(IMAGE_NAME, ":")[1]
+	} else {
+		imageName = IMAGE_NAME
+		imageTag = "latest"
+	}
+
+	//resolving endpoint
+	registryEndpoint, err := resolveEndpointForImage(imageName)
 	assertErr(err)
 
-	registryEndpoint, err := registry.NewEndpoint(hostname)
-	assertErr(err)
+	fmt.Println("Using:", registryEndpoint.URL, "API version:", registryEndpoint.Version)
 
 	//opening a session
 	//empty auth config (probably used only for private repository or private images I guess)
@@ -39,41 +49,51 @@ func main() {
 	assertErr(err)
 
 	//Get back token and endpoint for the repository
-	data, err := session.GetRepositoryData(REPOSITORY)
-	/*for k, v := range data.ImgList {
-		log.Println("key = ", k, " value = ", v.Tag, " - ", v.ID)
-	}*/
-
+	repoData, err := session.GetRepositoryData(imageName)
 	assertErr(err)
 
-	tokens := data.Tokens
-	repoEndpoint := data.Endpoints[0]
+	tokens := repoData.Tokens
+	repoEndpoint := repoData.Endpoints[0]
+
+	fmt.Println("Fetching", repoEndpoint, " with tokens", tokens)
+
+	tagsList, err := session.GetRemoteTags(repoData.Endpoints, imageName, tokens)
+	assertErr(err)
+	imageId := tagsList[imageTag]
+	fmt.Println(imageName, "with tag", imageTag, "has ID", imageId)
 
 	//Download image history (get back all the layers)
-	history, err := session.GetRemoteHistory(IMAGE_ID, repoEndpoint, tokens)
+	history, err := session.GetRemoteHistory(imageId, repoEndpoint, tokens)
 	assertErr(err)
 
-	log.Println("Image", IMAGE_ID, "is made of", len(history), "layers:", history)
+	fmt.Println("Image", imageName, "is made of", len(history), "layers:", history)
 
 	os.MkdirAll(ROOTFS_DEST, 0777)
 
 	for i := len(history) - 1; i >= 0; i-- {
-		imageId := history[i]
+		layerId := history[i]
 
-		log.Println("Downloading layer", imageId, "...")
-		layerData, err := downloadImageLayer(session, imageId, repoEndpoint, tokens)
+		fmt.Println("Downloading layer", layerId, "...")
+		layerData, err := downloadImageLayer(session, layerId, repoEndpoint, tokens)
 		defer layerData.Close()
 		assertErr(err)
 
-		log.Println("Untaring layer", imageId)
+		fmt.Println("Untaring layer", layerId)
 		err = archive.Untar(layerData, ROOTFS_DEST, nil)
 		assertErr(err)
 
-		log.Println("done", imageId)
+		fmt.Println("done", layerId)
 	}
 
-	log.Println("All good")
+	fmt.Println("All good, rootfs in", ROOTFS_DEST)
+}
 
+func resolveEndpointForImage(imageName string) (*registry.Endpoint, error) {
+	hostname, _, err := registry.ResolveRepositoryName(imageName)
+	if err != nil {
+		return nil, err
+	}
+	return registry.NewEndpoint(hostname)
 }
 
 func downloadImageLayer(session *registry.Session, imageId, endpoint string, tokens []string) (io.ReadCloser, error) {
