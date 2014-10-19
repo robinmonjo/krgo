@@ -34,11 +34,13 @@ func main() {
 		imageTag = "latest"
 	}
 
+	fmt.Printf("Requesting image: %v:%v\n", imageName, imageTag)
+
 	//resolving endpoint
 	registryEndpoint, err := resolveEndpointForImage(imageName)
 	assertErr(err)
 
-	fmt.Println("Using:", registryEndpoint.URL, "API version:", registryEndpoint.Version)
+	fmt.Printf("Endpoint: %v\nAPI: %v\n", registryEndpoint.URL, registryEndpoint.Version)
 
 	//opening a session
 	//empty auth config (probably used only for private repository or private images I guess)
@@ -55,37 +57,35 @@ func main() {
 	tokens := repoData.Tokens
 	repoEndpoint := repoData.Endpoints[0]
 
-	fmt.Println("Fetching", repoEndpoint, " with tokens", tokens)
+	fmt.Printf("Fetching: %v (tokens: %v)\n", repoEndpoint, tokens)
 
 	tagsList, err := session.GetRemoteTags(repoData.Endpoints, imageName, tokens)
 	assertErr(err)
 	imageId := tagsList[imageTag]
-	fmt.Println(imageName, "with tag", imageTag, "has ID", imageId)
+	fmt.Printf("Image ID: %v\n", imageId)
 
 	//Download image history (get back all the layers)
 	history, err := session.GetRemoteHistory(imageId, repoEndpoint, tokens)
 	assertErr(err)
-
-	fmt.Println("Image", imageName, "is made of", len(history), "layers:", history)
 
 	os.MkdirAll(ROOTFS_DEST, 0777)
 
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
 
-		fmt.Println("Downloading layer", layerId, "...")
+		fmt.Printf("\tDownloading layer dependant layer %v ...\n", layerId)
 		layerData, err := downloadImageLayer(session, layerId, repoEndpoint, tokens)
 		defer layerData.Close()
 		assertErr(err)
 
-		fmt.Println("Untaring layer", layerId)
+		fmt.Printf("\tUntaring layer %v\n", layerId)
 		err = archive.Untar(layerData, ROOTFS_DEST, nil)
 		assertErr(err)
 
-		fmt.Println("done", layerId)
+		fmt.Printf("\tdone %v\n", layerId)
 	}
 
-	fmt.Println("All good, rootfs in", ROOTFS_DEST)
+	fmt.Printf("All good, %v:%v in %v\n", imageName, imageTag, ROOTFS_DEST)
 }
 
 func resolveEndpointForImage(imageName string) (*registry.Endpoint, error) {
