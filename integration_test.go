@@ -10,7 +10,7 @@ import (
 
 var (
 	dlrootfsBinary string   = "dlrootfs"
-	testImages     []string = []string{"busybox", "pogrium/busybox"}
+	testImages     []string = []string{"busybox", "progrium/busybox"}
 	scratchImage   string   = "scratch"
 	unknownImage   string   = "unknownZRTFGHUIJKLMOPRST"
 
