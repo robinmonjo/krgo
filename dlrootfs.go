@@ -89,12 +89,14 @@ func main() {
 
 	os.MkdirAll(*rootfsDest, 0777)
 
+	var lastImgData []byte
+
 	cpt := 1
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
 
 		fmt.Printf("\tDownloading dependant layer %d/%d %v ...\n", cpt, len(history), layerId)
-		layerData, err := downloadImageLayer(session, layerId, repoEndpoint, tokens)
+		layerData, imgData, err := downloadImageLayer(session, layerId, repoEndpoint, tokens)
 		defer layerData.Close()
 		assertErr(err)
 
@@ -104,9 +106,15 @@ func main() {
 
 		fmt.Printf("\tdone %v\n", layerId)
 		cpt++
+
+		if i == 0 {
+			lastImgData = imgData
+		}
+
 	}
 
 	fmt.Printf("All good, %v:%v in %v\n", imageName, imageTag, *rootfsDest)
+	fmt.Printf("Image informations: \n %v", string(lastImgData))
 }
 
 func resolveEndpointForImage(imageName string) (*registry.Endpoint, error) {
@@ -117,11 +125,11 @@ func resolveEndpointForImage(imageName string) (*registry.Endpoint, error) {
 	return registry.NewEndpoint(hostname)
 }
 
-func downloadImageLayer(session *registry.Session, imageId, endpoint string, tokens []string) (io.ReadCloser, error) {
-	//Get back image information
-	_, imgSize, err := session.GetRemoteImageJSON(imageId, endpoint, tokens)
+func downloadImageLayer(session *registry.Session, imageId, endpoint string, tokens []string) (io.ReadCloser, []byte, error) {
+	imgData, imgSize, err := session.GetRemoteImageJSON(imageId, endpoint, tokens)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return session.GetRemoteImageLayer(imageId, endpoint, tokens, int64(imgSize))
+	layerData, err := session.GetRemoteImageLayer(imageId, endpoint, tokens, int64(imgSize))
+	return layerData, imgData, err
 }
