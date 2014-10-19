@@ -31,14 +31,14 @@ with other container libraries/manager:
 
 1. Browse the [Docker Hub](https://registry.hub.docker.com/) and find the image you want (say [ubuntu](https://registry.hub.docker.com/u/library/ubuntu/))
 2. Download ubuntu rootfs: `dlrootfs -i ubuntu`
-3. `cd` to `rootfs` and create a `container.json` file (needed by `libcontainer`, you can use the sample config of this repository `misc/container.json`).
+3. `cd` to `rootfs` and create a `container.json` file (needed by `libcontainer`, you can use the sample config of this repository `sample_configs/container.json`).
 4. Launch bash in the official Docker ubuntu image: `nsinit exec /bin/bash`
 
 #### Using Docker images with LXC
 
 1. Browse the [Docker Hub](https://registry.hub.docker.com/) and find the image you want (say [ubuntu](https://registry.hub.docker.com/u/library/ubuntu/))
 2. Download ubuntu rootfs: `dlrootfs -i ubuntu`
-3. Create a `config` file (for examples the one you can find in `misc/lxc-config`)
+3. Create a `config` file (for examples the one you can find in `sample_configs/lxc-config`)
 4. Do not forget to change the `config` to match your settings (especially rootfs location)
 5. Launch bash in the "official Docker ubuntu image LXC container": `lxc-start -n ubuntu -f <config file> /bin/bash`
 
