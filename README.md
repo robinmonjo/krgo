@@ -37,7 +37,7 @@ with other container libraries/manager:
 2. Download ubuntu rootfs: `dlrootfs -i ubuntu`
 3. Create a `fstab` and a `config` file (for examples the one you can find in `misc`)
 4. Do not forget to change the `config` to match your settings
-5. Launch the "official Docker ubuntu image LXC container": `lxc-start -n ubuntu -f <config file>`
+5. Launch bash in the "official Docker ubuntu image LXC container": `lxc-start -n ubuntu -f <config file> /bin/bash`
 
 ### TODO
 
