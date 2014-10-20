@@ -70,7 +70,7 @@ func main() {
 	repoData, err := session.GetRepositoryData(imageName)
 	assertErr(err)
 
-	fmt.Printf("Fetching: %v (tokens: %v)\n", repoData.Endpoints, repoData.Tokens)
+	fmt.Printf("Download information: %v (tokens: %v)\n", repoData.Endpoints, repoData.Tokens)
 
 	tagsList, err := session.GetRemoteTags(repoData.Endpoints, imageName, repoData.Tokens)
 	assertErr(err)
@@ -87,7 +87,7 @@ func main() {
 
 	queue := NewQueue(MAX_DL_CONCURRENCY)
 
-	fmt.Printf("%d layers to download \n", len(history))
+	fmt.Printf("Number of layers to download: %d\n", len(history))
 
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
@@ -96,16 +96,17 @@ func main() {
 	}
 	<-queue.DoneChan
 
+	fmt.Printf("Untaring layers:\n")
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
-		fmt.Printf("Untaring %v ... ", layerId)
+		fmt.Printf("\t%v ... ", layerId)
 		job := queue.completedJobWithLayerId(layerId)
 		err = archive.Untar(job.LayerData, *rootfsDest, nil)
 		assertErr(err)
 		if i == 0 {
 			lastImageData = job.LayerInfo
 		}
-		fmt.Printf("done\n ")
+		fmt.Printf("done\n")
 	}
 
 	var imageInfo map[string]interface{}
@@ -114,7 +115,7 @@ func main() {
 	prettyInfo, err := json.MarshalIndent(imageInfo, "", "  ")
 	assertErr(err)
 
-	fmt.Printf("All good, %v:%v in %v\n", imageName, imageTag, *rootfsDest)
+	fmt.Printf("\nAll good, %v:%v in %v\n", imageName, imageTag, *rootfsDest)
 	fmt.Printf("Image informations: \n %v\n", string(prettyInfo))
 }
 
