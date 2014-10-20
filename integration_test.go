@@ -35,7 +35,7 @@ func Test_downloadImage(t *testing.T) {
 	fmt.Printf("Ok\n")
 
 	if runtime.GOOS != "linux" {
-		fmt.Printf("Warning, just testing the %v image on %v \n Testing %v image ... ", scratchImage, scratchImage, runtime.GOOS)
+		fmt.Printf("Warning, just testing the %v image on %v \n Testing %v image ... ", scratchImage, runtime.GOOS, scratchImage)
 		downloadImage(scratchImage, "tmp_scratch", false, assertErrNil, t)
 		fmt.Printf("Ok\n")
 		return
@@ -50,7 +50,7 @@ func Test_downloadImage(t *testing.T) {
 }
 
 func downloadImage(imageName, rootfsDest string, checkFs bool, assert func(error, *testing.T), t *testing.T) {
-	defer os.Remove(rootfsDest)
+	defer os.RemoveAll(rootfsDest)
 
 	cmd := exec.Command(dlrootfsBinary, "-i", imageName, "-d", rootfsDest)
 	err := cmd.Start()
