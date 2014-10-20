@@ -4,14 +4,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"strings"
-	"sync"
-	"time"
 
-	//	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/registry"
 )
 
@@ -84,11 +81,10 @@ func main() {
 
 	os.MkdirAll(*rootfsDest, 0777)
 
-	var lastimageData []byte
+	var lastImageData []byte
 
-	queue := NewDownloadQueue(5)
-
-	cpt := 1
+	doneChan := make(chan bool)
+	queue := NewQueue(5, doneChan)
 
 	fmt.Println(len(history), " layers to download")
 
@@ -96,115 +92,29 @@ func main() {
 		layerId := history[i]
 		job := NewDownloadJob(session, repoData, layerId)
 		queue.enqueue(job)
-		/*
-			fmt.Printf("\tDownloading dependant layer %d/%d %v ...\n", cpt, len(history), layerId)
-			layerData, imageData, err := downloadImageLayer(session, layerId, repoData.Endpoints[0], repoData.Tokens)
-			defer layerData.Close()
-			assertErr(err)
+	}
+	<-doneChan
 
-			fmt.Printf("\tUntaring layer %v\n", layerId)
-			err = archive.Untar(layerData, *rootfsDest, nil)
-			assertErr(err)
-
-			fmt.Printf("\tdone %v\n", layerId)
-			cpt++
-
-			if i == 0 {
-				lastimageData = imageData
-			}
-		*/
-		cpt++
+	for i := len(history) - 1; i >= 0; i-- {
+		layerId := history[i]
+		fmt.Printf("Untaring %v ... ", layerId)
+		job := queue.completedJobWithLayerId(layerId)
+		err = archive.Untar(job.LayerData, *rootfsDest, nil)
+		assertErr(err)
+		if i == 0 {
+			lastImageData = job.LayerInfo
+		}
+		fmt.Printf("done\n ")
 	}
 
-	time.Sleep(100 * time.Second)
-
 	var imageInfo map[string]interface{}
-	err = json.Unmarshal(lastimageData, &imageInfo)
+	err = json.Unmarshal(lastImageData, &imageInfo)
 	assertErr(err)
 	prettyInfo, err := json.MarshalIndent(imageInfo, "", "  ")
 	assertErr(err)
 
 	fmt.Printf("All good, %v:%v in %v\n", imageName, imageTag, *rootfsDest)
 	fmt.Printf("Image informations: \n %v\n", string(prettyInfo))
-}
-
-type DownloadQueue struct {
-	Concurrency  int
-	NbRunningJob int
-	WaitingJobs  []*DownloadJob
-	Lock         *sync.Mutex
-}
-
-func NewDownloadQueue(concurrency int) *DownloadQueue {
-	return &DownloadQueue{Concurrency: concurrency, Lock: &sync.Mutex{}}
-}
-
-func (queue *DownloadQueue) enqueue(job *DownloadJob) {
-	queue.Lock.Lock()
-	defer queue.Lock.Unlock()
-
-	if !queue.canLaunchJob() {
-		//concurrency limit reached, make the job wait
-		queue.WaitingJobs = append(queue.WaitingJobs, job)
-		return
-	}
-
-	queue.startJob(job)
-}
-
-func (queue *DownloadQueue) startJob(job *DownloadJob) {
-	queue.NbRunningJob++
-	go func() {
-		//start the job
-		job.start()
-		queue.dequeue(job)
-	}()
-}
-
-func (queue *DownloadQueue) dequeue(job *DownloadJob) {
-	queue.Lock.Lock()
-	defer queue.Lock.Unlock()
-
-	assertErr(job.Err)
-	queue.NbRunningJob--
-	if queue.canLaunchJob() && len(queue.WaitingJobs) > 0 {
-		queue.startJob(queue.WaitingJobs[0])
-		queue.WaitingJobs = append(queue.WaitingJobs[:0], queue.WaitingJobs[1:]...) //remove first waiting job
-	}
-}
-
-func (queue *DownloadQueue) canLaunchJob() bool {
-	return queue.NbRunningJob < queue.Concurrency
-}
-
-type DownloadJob struct {
-	Session        *registry.Session
-	RepositoryData *registry.RepositoryData
-
-	LayerId string
-
-	LayerData io.ReadCloser
-	LayerInfo []byte
-	LayerSize int
-
-	Err error
-}
-
-func NewDownloadJob(session *registry.Session, repoData *registry.RepositoryData, layerId string) *DownloadJob {
-	return &DownloadJob{Session: session, RepositoryData: repoData, LayerId: layerId}
-}
-
-func (job *DownloadJob) start() {
-	fmt.Printf("Starting download layer %v\n", job.LayerId)
-	endpoint := job.RepositoryData.Endpoints[0]
-	tokens := job.RepositoryData.Tokens
-
-	job.LayerInfo, job.LayerSize, job.Err = job.Session.GetRemoteImageJSON(job.LayerId, endpoint, tokens)
-	if job.Err != nil {
-		return
-	}
-	job.LayerData, job.Err = job.Session.GetRemoteImageLayer(job.LayerId, endpoint, tokens, int64(job.LayerSize))
-	fmt.Printf("Done download layer %v\n", job.LayerId)
 }
 
 func openSession(endpoint *registry.Endpoint) (*registry.Session, error) {
@@ -222,13 +132,4 @@ func resolveEndpointForImage(imageName string) (*registry.Endpoint, error) {
 		return nil, err
 	}
 	return registry.NewEndpoint(hostname)
-}
-
-func downloadImageLayer(session *registry.Session, imageId, endpoint string, tokens []string) (io.ReadCloser, []byte, error) {
-	imageData, imageSize, err := session.GetRemoteImageJSON(imageId, endpoint, tokens)
-	if err != nil {
-		return nil, nil, err
-	}
-	layerData, err := session.GetRemoteImageLayer(imageId, endpoint, tokens, int64(imageSize))
-	return layerData, imageData, err
 }
