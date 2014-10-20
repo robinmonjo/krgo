@@ -14,11 +14,14 @@ type Queue struct {
 	WaitingJobs   []Job
 	Lock          *sync.Mutex
 	DoneChan      chan bool
+	PerJobChan    chan string
 	CompletedJobs []Job
 }
 
-func NewQueue(concurrency int, doneChan chan bool) *Queue {
-	return &Queue{Concurrency: concurrency, Lock: &sync.Mutex{}, DoneChan: doneChan}
+func NewQueue(concurrency int) *Queue {
+	doneChan := make(chan bool)
+	perJobChan := make(chan string, 10000)
+	return &Queue{Concurrency: concurrency, Lock: &sync.Mutex{}, DoneChan: doneChan, PerJobChan: perJobChan}
 }
 
 func (queue *Queue) enqueue(job Job) {
@@ -48,6 +51,7 @@ func (queue *Queue) dequeue(job Job) {
 
 	assertErr(job.Error())
 	queue.CompletedJobs = append(queue.CompletedJobs, job)
+	queue.PerJobChan <- job.ID()
 
 	queue.NbRunningJob--
 	if queue.canLaunchJob() && len(queue.WaitingJobs) > 0 {
@@ -75,6 +79,7 @@ func (queue *Queue) completedJobWithLayerId(layerId string) *DownloadJob {
 type Job interface {
 	Start()
 	Error() error
+	ID() string
 }
 
 type DownloadJob struct {
@@ -109,4 +114,8 @@ func (job *DownloadJob) Start() {
 
 func (job *DownloadJob) Error() error {
 	return job.Err
+}
+
+func (job *DownloadJob) ID() string {
+	return job.LayerId
 }

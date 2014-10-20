@@ -12,6 +12,8 @@ import (
 	"github.com/docker/docker/registry"
 )
 
+const MAX_DL_CONCURRENCY int = 5
+
 var rootfsDest *string = flag.String("d", "./rootfs", "destination of the resulting rootfs directory")
 var imageFullName *string = flag.String("i", "", "name of the image")
 
@@ -83,17 +85,16 @@ func main() {
 
 	var lastImageData []byte
 
-	doneChan := make(chan bool)
-	queue := NewQueue(5, doneChan)
+	queue := NewQueue(MAX_DL_CONCURRENCY)
 
-	fmt.Println(len(history), " layers to download")
+	fmt.Printf("%d layers to download \n", len(history))
 
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
 		job := NewDownloadJob(session, repoData, layerId)
 		queue.enqueue(job)
 	}
-	<-doneChan
+	<-queue.DoneChan
 
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
