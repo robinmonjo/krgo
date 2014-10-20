@@ -62,30 +62,22 @@ func main() {
 
 	fmt.Printf("Endpoint: %v\nAPI: %v\n", registryEndpoint.URL, registryEndpoint.Version)
 
-	//opening a session
-	//empty auth config (probably used only for private repository or private images I guess)
-	authConfig := &registry.AuthConfig{}
-	var metaHeaders map[string][]string
-
-	session, err := registry.NewSession(authConfig, registry.HTTPRequestFactory(metaHeaders), registryEndpoint, true)
+	session, err := openSession(registryEndpoint)
 	assertErr(err)
 
 	//Get back token and endpoint for the repository
 	repoData, err := session.GetRepositoryData(imageName)
 	assertErr(err)
 
-	tokens := repoData.Tokens
-	repoEndpoint := repoData.Endpoints[0]
+	fmt.Printf("Fetching: %v (tokens: %v)\n", repoData.Endpoints, repoData.Tokens)
 
-	fmt.Printf("Fetching: %v (tokens: %v)\n", repoEndpoint, tokens)
-
-	tagsList, err := session.GetRemoteTags(repoData.Endpoints, imageName, tokens)
+	tagsList, err := session.GetRemoteTags(repoData.Endpoints, imageName, repoData.Tokens)
 	assertErr(err)
 	imageId := tagsList[imageTag]
 	fmt.Printf("Image ID: %v\n", imageId)
 
 	//Download image history (get back all the layers)
-	history, err := session.GetRemoteHistory(imageId, repoEndpoint, tokens)
+	history, err := session.GetRemoteHistory(imageId, repoData.Endpoints[0], repoData.Tokens)
 	assertErr(err)
 
 	os.MkdirAll(*rootfsDest, 0777)
@@ -97,7 +89,7 @@ func main() {
 		layerId := history[i]
 
 		fmt.Printf("\tDownloading dependant layer %d/%d %v ...\n", cpt, len(history), layerId)
-		layerData, imageData, err := downloadImageLayer(session, layerId, repoEndpoint, tokens)
+		layerData, imageData, err := downloadImageLayer(session, layerId, repoData.Endpoints[0], repoData.Tokens)
 		defer layerData.Close()
 		assertErr(err)
 
@@ -122,6 +114,15 @@ func main() {
 
 	fmt.Printf("All good, %v:%v in %v\n", imageName, imageTag, *rootfsDest)
 	fmt.Printf("Image informations: \n %v\n", string(prettyInfo))
+}
+
+func openSession(endpoint *registry.Endpoint) (*registry.Session, error) {
+	//opening a session
+	//empty auth config (probably used only for private repository or private images I guess)
+	authConfig := &registry.AuthConfig{}
+	var metaHeaders map[string][]string
+
+	return registry.NewSession(authConfig, registry.HTTPRequestFactory(metaHeaders), endpoint, true)
 }
 
 func resolveEndpointForImage(imageName string) (*registry.Endpoint, error) {
