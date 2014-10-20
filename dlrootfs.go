@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -113,8 +114,14 @@ func main() {
 
 	}
 
+	var imageInfo map[string]interface{}
+	err = json.Unmarshal(lastImgData, &imageInfo)
+	assertErr(err)
+	prettyInfo, err := json.MarshalIndent(imageInfo, "", "  ")
+	assertErr(err)
+
 	fmt.Printf("All good, %v:%v in %v\n", imageName, imageTag, *rootfsDest)
-	fmt.Printf("Image informations: \n %v\n", string(lastImgData))
+	fmt.Printf("Image informations: \n %v\n", string(prettyInfo))
 }
 
 func resolveEndpointForImage(imageName string) (*registry.Endpoint, error) {
