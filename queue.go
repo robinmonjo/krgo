@@ -4,6 +4,12 @@ import (
 	"sync"
 )
 
+type Job interface {
+	Start()
+	Error() error
+	ID() string
+}
+
 type Queue struct {
 	Concurrency   int
 	NbRunningJob  int
@@ -52,7 +58,7 @@ func (queue *Queue) dequeue(job Job) {
 	queue.NbRunningJob--
 	if queue.canLaunchJob() && len(queue.WaitingJobs) > 0 {
 		queue.startJob(queue.WaitingJobs[0])
-		queue.WaitingJobs = append(queue.WaitingJobs[:0], queue.WaitingJobs[1:]...) //remove first waiting job
+		queue.WaitingJobs = append(queue.WaitingJobs[:0], queue.WaitingJobs[1:]...)
 	}
 	if len(queue.WaitingJobs) == 0 && queue.NbRunningJob == 0 {
 		queue.DoneChan <- true
@@ -70,10 +76,4 @@ func (queue *Queue) completedJobWithLayerId(layerId string) *DownloadJob {
 		}
 	}
 	return nil
-}
-
-type Job interface {
-	Start()
-	Error() error
-	ID() string
 }
