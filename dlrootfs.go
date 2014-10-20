@@ -87,20 +87,20 @@ func main() {
 
 	queue := NewQueue(MAX_DL_CONCURRENCY)
 
-	fmt.Printf("Number of layers to download: %d\n", len(history))
+	fmt.Printf("Downloading %d layers:\n", len(history))
 
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
 		job := NewDownloadJob(session, repoData, layerId)
-		queue.enqueue(job)
+		queue.Enqueue(job)
 	}
 	<-queue.DoneChan
 
-	fmt.Printf("Untaring layers:\n")
+	fmt.Printf("Untaring downloaded layers:\n")
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
 		fmt.Printf("\t%v ... ", layerId)
-		job := queue.completedJobWithLayerId(layerId)
+		job := queue.CompletedJobWithLayerId(layerId)
 		err = archive.Untar(job.LayerData, *rootfsDest, nil)
 		assertErr(err)
 		if i == 0 {
@@ -115,8 +115,8 @@ func main() {
 	prettyInfo, err := json.MarshalIndent(imageInfo, "", "  ")
 	assertErr(err)
 
-	fmt.Printf("\nAll good, %v:%v in %v\n", imageName, imageTag, *rootfsDest)
-	fmt.Printf("Image informations: \n %v\n", string(prettyInfo))
+	fmt.Printf("\nRootfs of %v:%v in %v\n\n", imageName, imageTag, *rootfsDest)
+	fmt.Printf("Image informations:\n%v\n", string(prettyInfo))
 }
 
 func openSession(endpoint *registry.Endpoint) (*registry.Session, error) {

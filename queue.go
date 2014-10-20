@@ -26,7 +26,7 @@ func NewQueue(concurrency int) *Queue {
 	return &Queue{Concurrency: concurrency, Lock: &sync.Mutex{}, DoneChan: doneChan, PerJobChan: perJobChan}
 }
 
-func (queue *Queue) enqueue(job Job) {
+func (queue *Queue) Enqueue(job Job) {
 	queue.Lock.Lock()
 	defer queue.Lock.Unlock()
 
@@ -69,7 +69,7 @@ func (queue *Queue) canLaunchJob() bool {
 	return queue.NbRunningJob < queue.Concurrency
 }
 
-func (queue *Queue) completedJobWithLayerId(layerId string) *DownloadJob {
+func (queue *Queue) CompletedJobWithLayerId(layerId string) *DownloadJob {
 	for _, job := range queue.CompletedJobs {
 		if job.(*DownloadJob).LayerId == layerId {
 			return job.(*DownloadJob)
