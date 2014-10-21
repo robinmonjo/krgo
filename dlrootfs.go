@@ -19,12 +19,12 @@ var imageFullName *string = flag.String("i", "", "name of the image")
 
 func init() {
 	flag.Usage = func() {
-		fmt.Printf("Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>]\n\n")
-		fmt.Printf("Examples:\n")
-		fmt.Printf("\tdlrootfs -i ubuntu  #if no tag, use latest\n")
-		fmt.Printf("\tdlrootfs -i ubuntu:precise\n")
-		fmt.Printf("\tdlrootfs -i dockefile/elasticsearch:latest\n")
-		fmt.Printf("Default:\n")
+		fmt.Fprintf(os.Stderr, "Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>]\n\n")
+		fmt.Fprintf(os.Stderr, "Examples:\n")
+		fmt.Fprintf(os.Stderr, "\tdlrootfs -i ubuntu  #if no tag, use latest\n")
+		fmt.Fprintf(os.Stderr, "\tdlrootfs -i ubuntu:precise\n")
+		fmt.Fprintf(os.Stderr, "\tdlrootfs -i dockefile/elasticsearch:latest\n")
+		fmt.Fprintf(os.Stderr, "Default:\n")
 		flag.PrintDefaults()
 	}
 }
