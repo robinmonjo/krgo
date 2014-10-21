@@ -12,10 +12,16 @@ import (
 	"github.com/docker/docker/registry"
 )
 
-const MAX_DL_CONCURRENCY int = 5
+const (
+	VERSION            string = "1.3"
+	MAX_DL_CONCURRENCY int    = 5
+)
 
-var rootfsDest *string = flag.String("d", "./rootfs", "destination of the resulting rootfs directory")
-var imageFullName *string = flag.String("i", "", "name of the image")
+var (
+	rootfsDest    *string = flag.String("d", "./rootfs", "destination of the resulting rootfs directory")
+	imageFullName *string = flag.String("i", "", "name of the image")
+	version       *bool   = flag.Bool("v", false, "display dlrootfs version")
+)
 
 func init() {
 	flag.Usage = func() {
@@ -38,6 +44,11 @@ func assertErr(err error) {
 func main() {
 
 	flag.Parse()
+
+	if *version {
+		fmt.Println(VERSION)
+		return
+	}
 
 	if *imageFullName == "" {
 		flag.Usage()
