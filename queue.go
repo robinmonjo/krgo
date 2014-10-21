@@ -17,13 +17,13 @@ type Queue struct {
 	Lock          *sync.Mutex
 	DoneChan      chan bool
 	PerJobChan    chan string
-	CompletedJobs []Job
+	CompletedJobs map[string]Job
 }
 
 func NewQueue(concurrency int) *Queue {
 	doneChan := make(chan bool)
 	perJobChan := make(chan string, 10000)
-	return &Queue{Concurrency: concurrency, Lock: &sync.Mutex{}, DoneChan: doneChan, PerJobChan: perJobChan}
+	return &Queue{Concurrency: concurrency, Lock: &sync.Mutex{}, DoneChan: doneChan, PerJobChan: perJobChan, CompletedJobs: make(map[string]Job)}
 }
 
 func (queue *Queue) Enqueue(job Job) {
@@ -52,7 +52,7 @@ func (queue *Queue) dequeue(job Job) {
 	defer queue.Lock.Unlock()
 
 	assertErr(job.Error())
-	queue.CompletedJobs = append(queue.CompletedJobs, job)
+	queue.CompletedJobs[job.ID()] = job
 	queue.PerJobChan <- job.ID()
 
 	queue.NbRunningJob--
@@ -69,11 +69,6 @@ func (queue *Queue) canLaunchJob() bool {
 	return queue.NbRunningJob < queue.Concurrency
 }
 
-func (queue *Queue) CompletedJobWithLayerId(layerId string) *DownloadJob {
-	for _, job := range queue.CompletedJobs {
-		if job.(*DownloadJob).LayerId == layerId {
-			return job.(*DownloadJob)
-		}
-	}
-	return nil
+func (queue *Queue) CompletedJobWithID(jobId string) Job {
+	return queue.CompletedJobs[jobId]
 }

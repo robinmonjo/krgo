@@ -100,7 +100,7 @@ func main() {
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
 		fmt.Printf("\t%v ... ", layerId)
-		job := queue.CompletedJobWithLayerId(layerId)
+		job := queue.CompletedJobWithID(layerId).(*DownloadJob)
 		err = archive.Untar(job.LayerData, *rootfsDest, nil)
 		assertErr(err)
 		if i == 0 {
