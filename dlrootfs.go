@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"strings"
@@ -13,17 +12,25 @@ import (
 	"github.com/docker/docker/registry"
 )
 
-var rootfsDest *string = flag.String("d", "./rootfs", "destination of the resulting rootfs directory")
-var imageFullName *string = flag.String("i", "", "name of the image")
+const (
+	VERSION            string = "1.3"
+	MAX_DL_CONCURRENCY int    = 5
+)
+
+var (
+	rootfsDest    *string = flag.String("d", "./rootfs", "destination of the resulting rootfs directory")
+	imageFullName *string = flag.String("i", "", "name of the image")
+	version       *bool   = flag.Bool("v", false, "display dlrootfs version")
+)
 
 func init() {
 	flag.Usage = func() {
-		fmt.Printf("Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>]\n\n")
-		fmt.Printf("Examples:\n")
-		fmt.Printf("\tdlrootfs -i ubuntu  #if no tag, use latest\n")
-		fmt.Printf("\tdlrootfs -i ubuntu:precise\n")
-		fmt.Printf("\tdlrootfs -i dockefile/elasticsearch:latest\n")
-		fmt.Printf("Default:\n")
+		fmt.Fprintf(os.Stderr, "Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>]\n\n")
+		fmt.Fprintf(os.Stderr, "Examples:\n")
+		fmt.Fprintf(os.Stderr, "\tdlrootfs -i ubuntu  #if no tag, use latest\n")
+		fmt.Fprintf(os.Stderr, "\tdlrootfs -i ubuntu:precise\n")
+		fmt.Fprintf(os.Stderr, "\tdlrootfs -i dockefile/elasticsearch:latest\n")
+		fmt.Fprintf(os.Stderr, "Default:\n")
 		flag.PrintDefaults()
 	}
 }
@@ -37,6 +44,11 @@ func assertErr(err error) {
 func main() {
 
 	flag.Parse()
+
+	if *version {
+		fmt.Println(VERSION)
+		return
+	}
 
 	if *imageFullName == "" {
 		flag.Usage()
@@ -69,7 +81,7 @@ func main() {
 	repoData, err := session.GetRepositoryData(imageName)
 	assertErr(err)
 
-	fmt.Printf("Fetching: %v (tokens: %v)\n", repoData.Endpoints, repoData.Tokens)
+	fmt.Printf("Download information: %v (tokens: %v)\n", repoData.Endpoints, repoData.Tokens)
 
 	tagsList, err := session.GetRemoteTags(repoData.Endpoints, imageName, repoData.Tokens)
 	assertErr(err)
@@ -82,38 +94,40 @@ func main() {
 
 	os.MkdirAll(*rootfsDest, 0777)
 
-	var lastimageData []byte
+	var lastImageData []byte
 
-	cpt := 1
+	queue := NewQueue(MAX_DL_CONCURRENCY)
+
+	fmt.Printf("Downloading %d layers:\n", len(history))
+
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
+		job := NewDownloadJob(session, repoData, layerId)
+		queue.Enqueue(job)
+	}
+	<-queue.DoneChan
 
-		fmt.Printf("\tDownloading dependant layer %d/%d %v ...\n", cpt, len(history), layerId)
-		layerData, imageData, err := downloadImageLayer(session, layerId, repoData.Endpoints[0], repoData.Tokens)
-		defer layerData.Close()
+	fmt.Printf("Untaring downloaded layers:\n")
+	for i := len(history) - 1; i >= 0; i-- {
+		layerId := history[i]
+		fmt.Printf("\t%v ... ", layerId)
+		job := queue.CompletedJobWithID(layerId).(*DownloadJob)
+		err = archive.Untar(job.LayerData, *rootfsDest, nil)
 		assertErr(err)
-
-		fmt.Printf("\tUntaring layer %v\n", layerId)
-		err = archive.Untar(layerData, *rootfsDest, nil)
-		assertErr(err)
-
-		fmt.Printf("\tdone %v\n", layerId)
-		cpt++
-
 		if i == 0 {
-			lastimageData = imageData
+			lastImageData = job.LayerInfo
 		}
-
+		fmt.Printf("done\n")
 	}
 
 	var imageInfo map[string]interface{}
-	err = json.Unmarshal(lastimageData, &imageInfo)
+	err = json.Unmarshal(lastImageData, &imageInfo)
 	assertErr(err)
 	prettyInfo, err := json.MarshalIndent(imageInfo, "", "  ")
 	assertErr(err)
 
-	fmt.Printf("All good, %v:%v in %v\n", imageName, imageTag, *rootfsDest)
-	fmt.Printf("Image informations: \n %v\n", string(prettyInfo))
+	fmt.Printf("\nRootfs of %v:%v in %v\n\n", imageName, imageTag, *rootfsDest)
+	fmt.Printf("Image informations:\n%v\n", string(prettyInfo))
 }
 
 func openSession(endpoint *registry.Endpoint) (*registry.Session, error) {
@@ -131,13 +145,4 @@ func resolveEndpointForImage(imageName string) (*registry.Endpoint, error) {
 		return nil, err
 	}
 	return registry.NewEndpoint(hostname)
-}
-
-func downloadImageLayer(session *registry.Session, imageId, endpoint string, tokens []string) (io.ReadCloser, []byte, error) {
-	imageData, imageSize, err := session.GetRemoteImageJSON(imageId, endpoint, tokens)
-	if err != nil {
-		return nil, nil, err
-	}
-	layerData, err := session.GetRemoteImageLayer(imageId, endpoint, tokens, int64(imageSize))
-	return layerData, imageData, err
 }

@@ -44,7 +44,7 @@ with other container libraries/manager:
 
 ### TODO
 
-- [ ] performance: add some concurrency
+- [x] performance: add some concurrency
 - [x] use cases (nsinit, lxc)
 - [x] integration tests (closely related to some docker packages, need to find out quickly if a new Docker version breaks things up)
 
