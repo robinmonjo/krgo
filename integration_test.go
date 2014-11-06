@@ -9,7 +9,7 @@ import (
 
 var (
 	dlrootfsBinary string   = "dlrootfs"
-	testImages     []string = []string{"busybox", "progrium/busybox"}
+	testImages     []string = []string{"busybox", "progrium/busybox", "debian"}
 	unknownImage   string   = "unknownZRTFGHUIJKLMOPRST"
 
 	minimalLinuxRootDirs []string = []string{"bin", "dev", "etc", "home", "lib", "mnt", "opt", "proc", "root", "run", "sbin", "sys", "tmp", "usr", "var"}

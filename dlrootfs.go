@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"runtime"
@@ -15,7 +16,7 @@ import (
 
 const (
 	VERSION            string = "1.3"
-	MAX_DL_CONCURRENCY int    = 5
+	MAX_DL_CONCURRENCY int    = 7
 )
 
 var (
@@ -93,7 +94,8 @@ func main() {
 	history, err := session.GetRemoteHistory(imageId, repoData.Endpoints[0], repoData.Tokens)
 	assertErr(err)
 
-	os.MkdirAll(*rootfsDest, 0777)
+	err = os.MkdirAll(*rootfsDest, 0700)
+	assertErr(err)
 
 	var lastImageData []byte
 
@@ -130,11 +132,10 @@ func main() {
 	var imageInfo map[string]interface{}
 	err = json.Unmarshal(lastImageData, &imageInfo)
 	assertErr(err)
-	prettyInfo, err := json.MarshalIndent(imageInfo, "", "  ")
-	assertErr(err)
+	prettyInfo, _ := json.MarshalIndent(imageInfo, "", "  ")
+	ioutil.WriteFile(*rootfsDest+"/container_info.json", prettyInfo, 0644)
 
-	fmt.Printf("\nRootfs of %v:%v in %v\n\n", imageName, imageTag, *rootfsDest)
-	fmt.Printf("Image informations:\n%v\n", string(prettyInfo))
+	fmt.Printf("\nRootfs of %v:%v in %v\n", imageName, imageTag, *rootfsDest)
 }
 
 func openSession(endpoint *registry.Endpoint) (*registry.Session, error) {
