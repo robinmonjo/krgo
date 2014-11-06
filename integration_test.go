@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 	"testing"
 )
 
 var (
 	dlrootfsBinary string   = "dlrootfs"
 	testImages     []string = []string{"busybox", "progrium/busybox"}
-	scratchImage   string   = "scratch"
 	unknownImage   string   = "unknownZRTFGHUIJKLMOPRST"
 
 	minimalLinuxRootDirs []string = []string{"bin", "dev", "etc", "home", "lib", "mnt", "opt", "proc", "root", "run", "sbin", "sys", "tmp", "usr", "var"}
@@ -33,13 +31,6 @@ func Test_downloadImage(t *testing.T) {
 	fmt.Printf("Testing unknown %v image ... ", unknownImage)
 	downloadImage(unknownImage, "tmp_unknown", false, assertErrNotNil, t)
 	fmt.Printf("Ok\n")
-
-	if runtime.GOOS != "linux" {
-		fmt.Printf("Warning, just testing the %v image on %v \n Testing %v image ... ", scratchImage, runtime.GOOS, scratchImage)
-		downloadImage(scratchImage, "tmp_scratch", false, assertErrNil, t)
-		fmt.Printf("Ok\n")
-		return
-	}
 
 	for _, imageName := range testImages {
 		fmt.Printf("Testing %v image ... ", imageName)

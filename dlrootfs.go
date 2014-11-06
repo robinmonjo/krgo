@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/docker/docker/pkg/archive"
@@ -108,11 +109,17 @@ func main() {
 	<-queue.DoneChan
 
 	fmt.Printf("Untaring downloaded layers:\n")
+
+	tarOptions := &archive.TarOptions{NoLchown: false}
+	if runtime.GOOS != "linux" {
+		tarOptions.NoLchown = true
+	}
+
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
 		fmt.Printf("\t%v ... ", layerId)
 		job := queue.CompletedJobWithID(layerId).(*DownloadJob)
-		err = archive.Untar(job.LayerData, *rootfsDest, nil)
+		err = archive.Untar(job.LayerData, *rootfsDest, tarOptions)
 		assertErr(err)
 		if i == 0 {
 			lastImageData = job.LayerInfo
