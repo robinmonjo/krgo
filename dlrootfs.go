@@ -122,6 +122,7 @@ func main() {
 		fmt.Printf("\t%v ... ", layerId)
 		job := queue.CompletedJobWithID(layerId).(*DownloadJob)
 		err = archive.Untar(job.LayerData, *rootfsDest, tarOptions)
+		job.LayerData.Close()
 		assertErr(err)
 		if i == 0 {
 			lastImageData = job.LayerInfo
