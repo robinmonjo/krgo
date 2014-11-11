@@ -78,14 +78,12 @@ func main() {
 
 	fmt.Printf("Endpoint: %v\nAPI: %v\n", registryEndpoint.URL, registryEndpoint.Version)
 
-	session, err := openSession(registryEndpoint)
+	session, err := openSession(registryEndpoint, *credentials)
 	assertErr(err)
 
 	//Get back token and endpoint for the repository
 	repoData, err := session.GetRepositoryData(imageName)
 	assertErr(err)
-
-	fmt.Printf("Download information: %v (tokens: %v)\n", repoData.Endpoints, repoData.Tokens)
 
 	tagsList, err := session.GetRemoteTags(repoData.Endpoints, imageName, repoData.Tokens)
 	assertErr(err)
@@ -143,17 +141,16 @@ func main() {
 	fmt.Printf("\nRootfs of %v:%v in %v\n", imageName, imageTag, *rootfsDest)
 }
 
-func openSession(endpoint *registry.Endpoint) (*registry.Session, error) {
-	//opening a session
-	//empty auth config (probably used only for private repository or private images I guess)
+func openSession(endpoint *registry.Endpoint, credentials string) (*registry.Session, error) {
 	authConfig := &registry.AuthConfig{}
-
-	/*
-			Username      string `json:"username,omitempty"`
-		Password      string `json:"password,omitempty"`
-		Auth          string `json:"auth"`
-		Email         string `json:"email"`
-	*/
+	if credentials != "" {
+		credentialsSplit := strings.SplitN(credentials, ":", 2)
+		if len(credentialsSplit) != 2 {
+			return nil, fmt.Errorf("Invalid credentials %v", credentials)
+		}
+		authConfig.Username = credentialsSplit[0]
+		authConfig.Password = credentialsSplit[1]
+	}
 
 	var metaHeaders map[string][]string
 
