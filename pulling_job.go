@@ -7,7 +7,7 @@ import (
 	"github.com/docker/docker/registry"
 )
 
-type DownloadJob struct {
+type PullingJob struct {
 	Session        *registry.Session
 	RepositoryData *registry.RepositoryData
 
@@ -20,12 +20,12 @@ type DownloadJob struct {
 	Err error
 }
 
-func NewDownloadJob(session *registry.Session, repoData *registry.RepositoryData, layerId string) *DownloadJob {
-	return &DownloadJob{Session: session, RepositoryData: repoData, LayerId: layerId}
+func NewPullingJob(session *registry.Session, repoData *registry.RepositoryData, layerId string) *PullingJob {
+	return &PullingJob{Session: session, RepositoryData: repoData, LayerId: layerId}
 }
 
-func (job *DownloadJob) Start() {
-	fmt.Printf("\tDownloading layer %v\n", job.LayerId)
+func (job *PullingJob) Start() {
+	fmt.Printf("\tPulling fs layer %v\n", truncateID(job.LayerId))
 	endpoint := job.RepositoryData.Endpoints[0]
 	tokens := job.RepositoryData.Tokens
 
@@ -34,13 +34,13 @@ func (job *DownloadJob) Start() {
 		return
 	}
 	job.LayerData, job.Err = job.Session.GetRemoteImageLayer(job.LayerId, endpoint, tokens, int64(job.LayerSize))
-	fmt.Printf("\tDone %v\n", job.LayerId)
+	fmt.Printf("\tDone %v\n", truncateID(job.LayerId))
 }
 
-func (job *DownloadJob) Error() error {
+func (job *PullingJob) Error() error {
 	return job.Err
 }
 
-func (job *DownloadJob) ID() string {
+func (job *PullingJob) ID() string {
 	return job.LayerId
 }

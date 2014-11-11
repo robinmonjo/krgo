@@ -103,16 +103,16 @@ func main() {
 
 	queue := NewQueue(MAX_DL_CONCURRENCY)
 
-	fmt.Printf("Downloading %d layers:\n", len(history))
+	fmt.Printf("Pulling %d layers:\n", len(history))
 
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
-		job := NewDownloadJob(session, repoData, layerId)
+		job := NewPullingJob(session, repoData, layerId)
 		queue.Enqueue(job)
 	}
 	<-queue.DoneChan
 
-	fmt.Printf("Untaring downloaded layers:\n")
+	fmt.Printf("Downloading layers:\n")
 
 	//do not extract metadata file (i.e: .wh..wh.aufs, .wh..wh.orph, .wh..wh.plnk)
 	//no lchown if not on linux
@@ -123,8 +123,8 @@ func main() {
 
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
-		fmt.Printf("\t%v ... ", layerId)
-		job := queue.CompletedJobWithID(layerId).(*DownloadJob)
+		fmt.Printf("\t%v ... ", truncateID(layerId))
+		job := queue.CompletedJobWithID(layerId).(*PullingJob)
 		err = archive.Untar(job.LayerData, *rootfsDest, tarOptions)
 		job.LayerData.Close()
 		assertErr(err)
