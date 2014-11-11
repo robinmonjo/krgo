@@ -112,7 +112,9 @@ func main() {
 
 	fmt.Printf("Untaring downloaded layers:\n")
 
-	tarOptions := &archive.TarOptions{NoLchown: false}
+	//do not extract metadata file (i.e: .wh..wh.aufs, .wh..wh.orph, .wh..wh.plnk)
+	//no lchown if not on linux
+	tarOptions := &archive.TarOptions{NoLchown: false, Excludes: []string{".wh."}}
 	if runtime.GOOS != "linux" {
 		tarOptions.NoLchown = true
 	}
