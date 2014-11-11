@@ -25,16 +25,17 @@ curl -sL https://github.com/robinmonjo/dlrootfs/releases/download/v1.3/dlrootfs_
 Docker has become really popular and lots of people and organisations are building Docker images they store
 and share on the [Docker Hub](https://registry.hub.docker.com/). However these images are only available for
 Docker's user. `dlrootfs` allows to download root file systems from the Docker Hub so they can be used
-with other container libraries/manager:
+with other container engines ([LXC](https://linuxcontainers.org/), [nsinit (`libcontainer`)](https://github.com/docker/libcontainer), [systemd-nspawn](http://0pointer.de/public/systemd-man/systemd-nspawn.html) ...)
 
-#### Using Docker images with nsinit ([`libcontainer`](https://github.com/docker/libcontainer))
+
+##### Using Docker images with nsinit
 
 1. Browse the [Docker Hub](https://registry.hub.docker.com/) and find the image you want (say [ubuntu](https://registry.hub.docker.com/u/library/ubuntu/))
 2. Download ubuntu rootfs: `dlrootfs -i ubuntu`
 3. `cd` to `rootfs` and create a `container.json` file (needed by `libcontainer`, you can use the sample config of this repository `sample_configs/container.json`).
 4. Launch bash in the official Docker ubuntu image: `nsinit exec /bin/bash`
 
-#### Using Docker images with LXC
+##### Using Docker images with LXC
 
 1. Browse the [Docker Hub](https://registry.hub.docker.com/) and find the image you want (say [ubuntu](https://registry.hub.docker.com/u/library/ubuntu/))
 2. Download ubuntu rootfs: `dlrootfs -i ubuntu`
@@ -42,11 +43,15 @@ with other container libraries/manager:
 4. Do not forget to change the `config` to match your settings (especially rootfs location)
 5. Launch bash in the "official Docker ubuntu image LXC container": `lxc-start -n ubuntu -f <config file> /bin/bash`
 
-### TODO
+### Notes
 
-- [x] performance: add some concurrency
-- [x] use cases (nsinit, lxc)
-- [x] integration tests (closely related to some docker packages, need to find out quickly if a new Docker version breaks things up)
+Provided binary is Linux only but `dlrootfs` may be used on OSX and (probably) windows too.
+The difference is, when ran on a Linux box, `dlrootfs` will perform `lchown` during layer extraction,
+it won't otherwise.
+
+Some images require you to be root during extraction (the official busybox image for example) why others won't
+(the official debian one). Not sure exactly why but probably because of the way they were packaged.
+
 
 ### Warnings
 

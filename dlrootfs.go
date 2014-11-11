@@ -147,6 +147,14 @@ func openSession(endpoint *registry.Endpoint) (*registry.Session, error) {
 	//opening a session
 	//empty auth config (probably used only for private repository or private images I guess)
 	authConfig := &registry.AuthConfig{}
+
+	/*
+			Username      string `json:"username,omitempty"`
+		Password      string `json:"password,omitempty"`
+		Auth          string `json:"auth"`
+		Email         string `json:"email"`
+	*/
+
 	var metaHeaders map[string][]string
 
 	return registry.NewSession(authConfig, registry.HTTPRequestFactory(metaHeaders), endpoint, true)
