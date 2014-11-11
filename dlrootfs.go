@@ -22,16 +22,18 @@ const (
 var (
 	rootfsDest    *string = flag.String("d", "./rootfs", "destination of the resulting rootfs directory")
 	imageFullName *string = flag.String("i", "", "name of the image")
+	credentials   *string = flag.String("u", "", "docker hub credentials: username:password")
 	version       *bool   = flag.Bool("v", false, "display dlrootfs version")
 )
 
 func init() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>]\n\n")
+		fmt.Fprintf(os.Stderr, "Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>]\n\n")
 		fmt.Fprintf(os.Stderr, "Examples:\n")
 		fmt.Fprintf(os.Stderr, "\tdlrootfs -i ubuntu  #if no tag, use latest\n")
-		fmt.Fprintf(os.Stderr, "\tdlrootfs -i ubuntu:precise\n")
+		fmt.Fprintf(os.Stderr, "\tdlrootfs -i ubuntu:precise -d ubuntu_rootfs\n")
 		fmt.Fprintf(os.Stderr, "\tdlrootfs -i dockefile/elasticsearch:latest\n")
+		fmt.Fprintf(os.Stderr, "\tdlrootfs -i my_repo/my_image:latest -u username:password\n")
 		fmt.Fprintf(os.Stderr, "Default:\n")
 		flag.PrintDefaults()
 	}
