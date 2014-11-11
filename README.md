@@ -20,7 +20,7 @@ Default:
 ### Installation
 
 ````bash
-curl -sL https://github.com/robinmonjo/dlrootfs/releases/download/v1.3/dlrootfs_x86_64.tgz | tar -C /usr/local/bin -zxf -
+curl -sL https://github.com/robinmonjo/dlrootfs/releases/download/v1.3.1/dlrootfs_x86_64.tgz | tar -C /usr/local/bin -zxf -
 ````
 
 ### Why dlrootfs ?
