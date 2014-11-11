@@ -3,15 +3,18 @@
 Download root file systems from the [Docker Hub](https://registry.hub.docker.com/)
 
 ````bash
-Usage: dlrootfs -i <image_name>[:<image_tag>] [-d <rootfs_destination>]
+Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>]
 
 Examples:
-	dlrootfs -i ubuntu  #if no tag, use latest
-	dlrootfs -i ubuntu:precise
-	dlrootfs -i dockefile/elasticsearch:latest
+  dlrootfs -i ubuntu  #if no tag, use latest
+  dlrootfs -i ubuntu:precise -d ubuntu_rootfs
+  dlrootfs -i dockefile/elasticsearch:latest
+  dlrootfs -i my_repo/my_image:latest -u username:password
 Default:
   -d="./rootfs": destination of the resulting rootfs directory
-  -i="": name of the image
+  -i="": name of the image <repository>/<image>:<tag>
+  -u="": docker hub credentials: <username>:<password>
+  -v=false: display dlrootfs version
 ````
 
 ### Installation
