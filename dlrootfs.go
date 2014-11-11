@@ -139,6 +139,9 @@ func main() {
 	ioutil.WriteFile(*rootfsDest+"/container_info.json", prettyInfo, 0644)
 
 	fmt.Printf("\nRootfs of %v:%v in %v\n", imageName, imageTag, *rootfsDest)
+	if *credentials != "" {
+		fmt.Printf("WARNING: don't forget to remove your docker hub credentials from your history !!\n")
+	}
 }
 
 func openSession(endpoint *registry.Endpoint, credentials string) (*registry.Session, error) {

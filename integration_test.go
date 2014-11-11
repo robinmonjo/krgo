@@ -11,7 +11,7 @@ const CREDS_ENV string = "DLROOTFS_CREDS"
 
 var (
 	dlrootfsBinary string   = "dlrootfs"
-	testImages     []string = []string{"busybox", "progrium/busybox", "debian"}
+	testImages     []string = []string{"busybox", "progrium/busybox"}
 	unknownImage   string   = "unknownZRTFGHUIJKLMOPRST"
 	privateImage   string   = "robinmonjo/debian"
 
@@ -48,7 +48,7 @@ func Test_downloadPrivateImage(t *testing.T) {
 		fmt.Printf("Skipping private image test (%v not set)\n", CREDS_ENV)
 		return
 	}
-	fmt.Printf("Testing %v image ... ", privateImage)
+	fmt.Printf("Testing private %v image ... ", privateImage)
 	downloadImage(privateImage, "tmp_priv_test", creds, true, assertErrNil, t)
 	fmt.Printf("Ok\n")
 }
