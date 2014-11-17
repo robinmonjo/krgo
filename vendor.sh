@@ -40,5 +40,7 @@ clone() {
 }
 
 clone git github.com/docker/docker v1.3.0
+clone git github.com/gorilla/mux 136d54f81f
+clone git github.com/gorilla/context 14f550f51a
 
 echo "don't forget to add vendor folder to your GOPATH (export GOPATH=\$GOPATH:\`pwd\`/vendor)"
