@@ -134,7 +134,7 @@ func main() {
 
 		if *gitLayering {
 			//create a git branch
-			err = gitRepo.checkoutB("layer" + strconv.Itoa(cpt) + "_" + truncateID(layerId))
+			_, err = gitRepo.checkoutB("layer" + strconv.Itoa(cpt) + "_" + truncateID(layerId))
 			assertErr(err)
 		}
 
@@ -152,9 +152,9 @@ func main() {
 		ioutil.WriteFile(*rootfsDest+"/layer_info.json", prettyInfo, 0644)
 
 		if *gitLayering {
-			err = gitRepo.add(".")
+			_, err = gitRepo.add(".")
 			assertErr(err)
-			err = gitRepo.commit("adding layer " + strconv.Itoa(cpt))
+			_, err = gitRepo.commit("adding layer " + strconv.Itoa(cpt))
 			assertErr(err)
 		}
 

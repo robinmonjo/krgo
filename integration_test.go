@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 )
 
@@ -14,6 +15,7 @@ var (
 	testImages     []string = []string{"busybox", "progrium/busybox"}
 	unknownImage   string   = "unknownZRTFGHUIJKLMOPRST"
 	privateImage   string   = "robinmonjo/debian"
+	gitImage       string   = "ubuntu:14.04"
 
 	minimalLinuxRootDirs []string = []string{"bin", "dev", "etc", "home", "lib", "mnt", "opt", "proc", "root", "run", "sbin", "sys", "tmp", "usr", "var"}
 )
@@ -80,5 +82,40 @@ func checkDirExists(dir string, t *testing.T) {
 
 	if !src.IsDir() {
 		t.Fatal(dir, "not a directory")
+	}
+}
+
+func Test_downloadWithGitLayers(t *testing.T) {
+	rootfsDest := "./ubuntu"
+	defer os.RemoveAll(rootfsDest)
+	cmd := exec.Command(dlrootfsBinary, "-i", gitImage, "-d", rootfsDest, "-g")
+	err := cmd.Start()
+	assertErrNil(err, t)
+
+	err = cmd.Wait()
+	assertErrNil(err, t)
+
+	gitRepo, _ := NewGitRepo(rootfsDest)
+	out, _ := gitRepo.branch()
+
+	expectedBranches := []string{
+		"layer0_511136ea3c5a",
+		"layer1_01bf15a18638",
+		"layer2_30541f8f3062",
+		"layer3_e1cdf371fbde",
+		"* layer4_9bd07e480c5b",
+	}
+
+	branches := strings.Split(string(out), "\n")
+
+	for i, branch := range branches {
+		trimmedBranch := strings.Trim(branch, " \n")
+		if trimmedBranch == "" {
+			continue
+		}
+		expectedBranch := expectedBranches[i]
+		if trimmedBranch != expectedBranch {
+			t.Fatal("Expected branch", expectedBranch, " got ", trimmedBranch)
+		}
 	}
 }

@@ -25,10 +25,14 @@ packagelist=(
   ssl-cert
   libcurl4-openssl-dev
   lxc
+	zsh
+	git
   python-software-properties
   golang
 )
 
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ${packagelist[@]}
+
+curl -L http://install.ohmyz.sh | sh
 
 echo "GOPATH=~/code/go" >> ~/.bashrc
