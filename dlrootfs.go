@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	VERSION            string = "1.3.1"
+	VERSION            string = "1.3.2"
 	MAX_DL_CONCURRENCY int    = 7
 )
 
