@@ -23,6 +23,7 @@ var (
 	rootfsDest    *string = flag.String("d", "./rootfs", "destination of the resulting rootfs directory")
 	imageFullName *string = flag.String("i", "", "name of the image <repository>/<image>:<tag>")
 	credentials   *string = flag.String("u", "", "docker hub credentials: <username>:<password>")
+	gitLayering   *bool   = flag.Bool("g", false, "use git layering")
 	version       *bool   = flag.Bool("v", false, "display dlrootfs version")
 )
 
@@ -97,6 +98,12 @@ func main() {
 	err = os.MkdirAll(*rootfsDest, 0700)
 	assertErr(err)
 
+	var gitRepo *GitRepo
+	if *gitLayering {
+		gitRepo, err = NewGitRepo(*rootfsDest)
+		assertErr(err)
+	}
+
 	var lastImageData []byte
 
 	queue := NewQueue(MAX_DL_CONCURRENCY)
@@ -112,9 +119,8 @@ func main() {
 
 	fmt.Printf("Downloading layers:\n")
 
-	//do not extract metadata file (i.e: .wh..wh.aufs, .wh..wh.orph, .wh..wh.plnk)
 	//no lchown if not on linux
-	tarOptions := &archive.TarOptions{NoLchown: false, Excludes: []string{".wh."}}
+	tarOptions := &archive.TarOptions{NoLchown: false}
 	if runtime.GOOS != "linux" {
 		tarOptions.NoLchown = true
 	}
@@ -122,12 +128,25 @@ func main() {
 	for i := len(history) - 1; i >= 0; i-- {
 		layerId := history[i]
 		fmt.Printf("\t%v ... ", truncateID(layerId))
+		if *gitLayering {
+			if err := gitRepo.checkoutB("layer_" + truncateID(layerId)); err != nil {
+				log.Fatal("Error checkoutB", err)
+			}
+		}
 		job := queue.CompletedJobWithID(layerId).(*PullingJob)
 		err = archive.Untar(job.LayerData, *rootfsDest, tarOptions)
 		job.LayerData.Close()
 		assertErr(err)
 		if i == 0 {
 			lastImageData = job.LayerInfo
+		}
+		if *gitLayering {
+			if err := gitRepo.add("."); err != nil {
+				log.Println("Error add", err)
+			}
+			if err := gitRepo.commit("adding layer"); err != nil {
+				log.Println("Error ci", err)
+			}
 		}
 		fmt.Printf("done\n")
 	}
@@ -165,5 +184,5 @@ func resolveEndpointForImage(imageName string) (*registry.Endpoint, error) {
 	if err != nil {
 		return nil, err
 	}
-	return registry.NewEndpoint(hostname)
+	return registry.NewEndpoint(hostname, []string{})
 }
