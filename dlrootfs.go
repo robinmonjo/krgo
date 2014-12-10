@@ -145,10 +145,10 @@ func main() {
 		assertErr(err)
 
 		//write image info
-		var imageInfo map[string]interface{}
-		err = json.Unmarshal(job.LayerInfo, &imageInfo)
+		var layerInfo map[string]interface{}
+		err = json.Unmarshal(job.LayerInfo, &layerInfo)
 		assertErr(err)
-		prettyInfo, _ := json.MarshalIndent(imageInfo, "", "  ")
+		prettyInfo, _ := json.MarshalIndent(layerInfo, "", "  ")
 		ioutil.WriteFile(*rootfsDest+"/layer_info.json", prettyInfo, 0644)
 
 		if *gitLayering {

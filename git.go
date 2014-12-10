@@ -12,7 +12,6 @@ type GitRepo struct {
 func NewGitRepo(path string) (*GitRepo, error) {
 	r := &GitRepo{Path: path}
 
-	// equivalent to Python's `if os.path.exists(filename)`
 	if _, err := os.Stat(path + "/.git"); err == nil {
 		return r, nil
 	}
