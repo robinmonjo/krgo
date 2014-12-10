@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/docker/docker/pkg/archive"
@@ -104,8 +105,6 @@ func main() {
 		assertErr(err)
 	}
 
-	var lastImageData []byte
-
 	queue := NewQueue(MAX_DL_CONCURRENCY)
 
 	fmt.Printf("Pulling %d layers:\n", len(history))
@@ -125,37 +124,43 @@ func main() {
 		tarOptions.NoLchown = true
 	}
 
+	cpt := 0
+
 	for i := len(history) - 1; i >= 0; i-- {
+
+		//for each layers
 		layerId := history[i]
 		fmt.Printf("\t%v ... ", truncateID(layerId))
+
 		if *gitLayering {
-			if err := gitRepo.checkoutB("layer_" + truncateID(layerId)); err != nil {
-				log.Fatal("Error checkoutB", err)
-			}
+			//create a git branch
+			err = gitRepo.checkoutB("layer" + strconv.Itoa(cpt) + "_" + truncateID(layerId))
+			assertErr(err)
 		}
+
+		//download and untar the layer
 		job := queue.CompletedJobWithID(layerId).(*PullingJob)
 		err = archive.Untar(job.LayerData, *rootfsDest, tarOptions)
 		job.LayerData.Close()
 		assertErr(err)
-		if i == 0 {
-			lastImageData = job.LayerInfo
-		}
+
+		//write image info
+		var imageInfo map[string]interface{}
+		err = json.Unmarshal(job.LayerInfo, &imageInfo)
+		assertErr(err)
+		prettyInfo, _ := json.MarshalIndent(imageInfo, "", "  ")
+		ioutil.WriteFile(*rootfsDest+"/layer_info.json", prettyInfo, 0644)
+
 		if *gitLayering {
-			if err := gitRepo.add("."); err != nil {
-				log.Println("Error add", err)
-			}
-			if err := gitRepo.commit("adding layer"); err != nil {
-				log.Println("Error ci", err)
-			}
+			err = gitRepo.add(".")
+			assertErr(err)
+			err = gitRepo.commit("adding layer " + strconv.Itoa(cpt))
+			assertErr(err)
 		}
+
+		cpt++
 		fmt.Printf("done\n")
 	}
-
-	var imageInfo map[string]interface{}
-	err = json.Unmarshal(lastImageData, &imageInfo)
-	assertErr(err)
-	prettyInfo, _ := json.MarshalIndent(imageInfo, "", "  ")
-	ioutil.WriteFile(*rootfsDest+"/container_info.json", prettyInfo, 0644)
 
 	fmt.Printf("\nRootfs of %v:%v in %v\n", imageName, imageTag, *rootfsDest)
 	if *credentials != "" {

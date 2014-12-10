@@ -23,7 +23,7 @@ func (r *GitRepo) checkout(branch string) error {
 }
 
 func (r *GitRepo) checkoutB(branch string) error {
-	r.execInWorkTree("checkout", "-b", branch)
+	return r.execInWorkTree("checkout", "-b", branch)
 }
 
 func (r *GitRepo) add(file string) error {
