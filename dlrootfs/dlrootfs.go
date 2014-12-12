@@ -21,12 +21,12 @@ var (
 
 func init() {
 	globalFlagset.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>] [-g]\n\n")
+		fmt.Fprintf(os.Stderr, "Usage: dlrootfs <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>] [-g]\n\n")
 		fmt.Fprintf(os.Stderr, "Examples:\n")
-		fmt.Fprintf(os.Stderr, "  dlrootfs -i ubuntu  #if no tag, use latest\n")
-		fmt.Fprintf(os.Stderr, "  dlrootfs -i ubuntu:precise -d ubuntu_rootfs\n")
-		fmt.Fprintf(os.Stderr, "  dlrootfs -i dockefile/elasticsearch:latest\n")
-		fmt.Fprintf(os.Stderr, "  dlrootfs -i my_repo/my_image:latest -u username:password\n")
+		fmt.Fprintf(os.Stderr, "  dlrootfs ubuntu  #if no tag, use latest\n")
+		fmt.Fprintf(os.Stderr, "  dlrootfs ubuntu:precise -d ubuntu_rootfs\n")
+		fmt.Fprintf(os.Stderr, "  dlrootfs dockefile/elasticsearch:latest\n")
+		fmt.Fprintf(os.Stderr, "  dlrootfs my_repo/my_image:latest -u username:password\n")
 		fmt.Fprintf(os.Stderr, "  dlrootfs version\n")
 		fmt.Fprintf(os.Stderr, "Default:\n")
 		globalFlagset.PrintDefaults()

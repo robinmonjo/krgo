@@ -3,13 +3,13 @@
 Download root file systems from the [docker hub](https://registry.hub.docker.com/) without docker
 
 ````bash
-Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>] [-g]
+Usage: dlrootfs <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>] [-g]
 
 Examples:
-  dlrootfs -i ubuntu  #if no tag, use latest
-  dlrootfs -i ubuntu:precise -d ubuntu_rootfs
-  dlrootfs -i dockefile/elasticsearch:latest
-  dlrootfs -i my_repo/my_image:latest -u username:password
+  dlrootfs ubuntu  #if no tag, use latest
+  dlrootfs ubuntu:precise -d ubuntu_rootfs
+  dlrootfs dockefile/elasticsearch:latest
+  dlrootfs my_repo/my_image:latest -u username:password
   dlrootfs version
 Default:
   -d="./rootfs": destination of the resulting rootfs directory
@@ -53,14 +53,14 @@ with other container engines ([LXC](https://linuxcontainers.org/), [nsinit (`lib
 ##### Using docker images with nsinit
 
 1. Browse the [docker hub](https://registry.hub.docker.com/) and find the image you want (say [ubuntu](https://registry.hub.docker.com/u/library/ubuntu/))
-2. Download ubuntu rootfs: `dlrootfs -i ubuntu`
+2. Download ubuntu rootfs: `dlrootfs ubuntu`
 3. `cd` to `rootfs` and create a `container.json` file (needed by `libcontainer`, you can use the sample config of this repository `sample_configs/container.json`).
 4. Launch bash in the official Docker ubuntu image: `nsinit exec /bin/bash`
 
 ##### Using docker images with LXC
 
 1. Browse the [docker hub](https://registry.hub.docker.com/) and find the image you want (say [ubuntu](https://registry.hub.docker.com/u/library/ubuntu/))
-2. Download ubuntu rootfs: `dlrootfs -i ubuntu`
+2. Download ubuntu rootfs: `dlrootfs ubuntu`
 3. Create a `config` file (for examples the one you can find in `sample_configs/lxc-config`)
 4. Do not forget to change the `config` to match your settings (especially rootfs location)
 5. Launch bash in the "official Docker ubuntu image LXC container": `lxc-start -n ubuntu -f <config file> /bin/bash`
