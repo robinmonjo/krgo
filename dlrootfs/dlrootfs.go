@@ -9,7 +9,7 @@ import (
 	"github.com/rmonjo/dlrootfs"
 )
 
-const VERSION string = "1.3.2"
+const VERSION string = "1.4.0"
 
 var (
 	rootfsDest    *string = flag.String("d", "./rootfs", "destination of the resulting rootfs directory")
