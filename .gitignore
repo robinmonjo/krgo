@@ -2,4 +2,4 @@ rootfs
 .vagrant
 vendor
 release
-dlrootfs
+dlrootfs/dlrootfs

@@ -1,6 +1,7 @@
-package main
+package dlrootfs
 
 import (
+	"log"
 	"sync"
 )
 
@@ -51,7 +52,9 @@ func (queue *Queue) dequeue(job Job) {
 	queue.Lock.Lock()
 	defer queue.Lock.Unlock()
 
-	assertErr(job.Error())
+	if job.Error() != nil {
+		log.Fatal(job.Error())
+	}
 	queue.CompletedJobs[job.ID()] = job
 	queue.PerJobChan <- job.ID()
 

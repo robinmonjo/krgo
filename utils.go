@@ -1,4 +1,4 @@
-package main
+package dlrootfs
 
 func truncateID(id string) string {
 	shortLen := 12

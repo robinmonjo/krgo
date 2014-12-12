@@ -1,18 +1,18 @@
 HARDWARE=$(shell uname -m)
 
 build:
-	go build
+	cd dlrootfs && go build
 
 release:
 	mkdir -p release
-	GOOS=linux go build -o release/dlrootfs
+	cd dlrootfs && GOOS=linux go build -o ../release/dlrootfs
 	cd release && tar -zcf dlrootfs_$(HARDWARE).tgz dlrootfs
 
 	rm release/dlrootfs
 
 test:
-	go install
-	go test
+	cd dlrootfs && go install
+	cd integration && go test
 
 clean:
 	rm -rf release
