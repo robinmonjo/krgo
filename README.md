@@ -44,9 +44,9 @@ Some images require you to be root during extraction (the official busybox image
 
 ### Why dlrootfs ?
 
-Docker has become really popular and lots of people and organisations are building Docker images they store
+Docker has become really popular and lots of people and organisations are building docker images they store
 and share on the [docker hub](https://registry.hub.docker.com/). However these images are only available for
-Docker's user. `dlrootfs` allows to download root file systems from the Docker Hub so they can be used
+docker's user. `dlrootfs` allows to download root file systems from the docker hub so they can be used
 with other container engines ([LXC](https://linuxcontainers.org/), [nsinit (`libcontainer`)](https://github.com/docker/libcontainer), [systemd-nspawn](http://0pointer.de/public/systemd-man/systemd-nspawn.html) ...)
 
 
