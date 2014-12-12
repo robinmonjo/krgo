@@ -35,7 +35,7 @@ and commit changes, etc. It also opens the path for `docker push` without docker
 curl -sL https://github.com/robinmonjo/dlrootfs/releases/download/v1.4.0/dlrootfs_x86_64.tgz | tar -C /usr/local/bin -zxf -
 ````
 
-Provided binary is Linux only but `dlrootfs` may be used on OSX and (probably) windows too.
+Provided binary is linux only but `dlrootfs` may be used on OSX and (probably) windows too.
 The difference is, when ran on a linux box, `dlrootfs` will perform `lchown` during layer extraction,
 it won't otherwise.
 
