@@ -3,3 +3,4 @@ rootfs
 vendor
 release
 dlrootfs
+dlrootfs/dlrootfs

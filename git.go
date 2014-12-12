@@ -1,4 +1,4 @@
-package main
+package dlrootfs
 
 import (
 	"os"
@@ -33,23 +33,23 @@ func NewGitRepo(path string) (*GitRepo, error) {
 	return r, nil
 }
 
-func (r *GitRepo) checkout(branch string) ([]byte, error) {
+func (r *GitRepo) Checkout(branch string) ([]byte, error) {
 	return r.execInWorkTree("checkout", branch)
 }
 
-func (r *GitRepo) checkoutB(branch string) ([]byte, error) {
+func (r *GitRepo) CheckoutB(branch string) ([]byte, error) {
 	return r.execInWorkTree("checkout", "-b", branch)
 }
 
-func (r *GitRepo) add(file string) ([]byte, error) {
+func (r *GitRepo) Add(file string) ([]byte, error) {
 	return r.execInWorkTree("add", file)
 }
 
-func (r *GitRepo) commit(message string) ([]byte, error) {
+func (r *GitRepo) Commit(message string) ([]byte, error) {
 	return r.execInWorkTree("commit", "-m", message)
 }
 
-func (r *GitRepo) branch() ([]byte, error) {
+func (r *GitRepo) Branch() ([]byte, error) {
 	return r.execInWorkTree("branch")
 }
 

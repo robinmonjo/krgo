@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/rmonjo/dlrootfs"
 )
 
 const CREDS_ENV string = "DLROOTFS_CREDS"
@@ -86,6 +88,7 @@ func checkDirExists(dir string, t *testing.T) {
 }
 
 func Test_downloadWithGitLayers(t *testing.T) {
+	fmt.Printf("Testing git layering ... ")
 	rootfsDest := "./ubuntu"
 	defer os.RemoveAll(rootfsDest)
 	cmd := exec.Command(dlrootfsBinary, "-i", gitImage, "-d", rootfsDest, "-g")
@@ -95,8 +98,8 @@ func Test_downloadWithGitLayers(t *testing.T) {
 	err = cmd.Wait()
 	assertErrNil(err, t)
 
-	gitRepo, _ := NewGitRepo(rootfsDest)
-	out, _ := gitRepo.branch()
+	gitRepo, _ := dlrootfs.NewGitRepo(rootfsDest)
+	out, _ := gitRepo.Branch()
 
 	expectedBranches := []string{
 		"layer0_511136ea3c5a",
@@ -118,4 +121,5 @@ func Test_downloadWithGitLayers(t *testing.T) {
 			t.Fatal("Expected branch", expectedBranch, " got ", trimmedBranch)
 		}
 	}
+	fmt.Printf("OK\n")
 }
