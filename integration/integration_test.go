@@ -60,7 +60,7 @@ func Test_downloadPrivateImage(t *testing.T) {
 func downloadImage(imageName, rootfsDest, credentials string, checkFs bool, assert func(error, *testing.T), t *testing.T) {
 	defer os.RemoveAll(rootfsDest)
 
-	cmd := exec.Command(dlrootfsBinary, "-i", imageName, "-d", rootfsDest, "-u", credentials)
+	cmd := exec.Command(dlrootfsBinary, imageName, "-d", rootfsDest, "-u", credentials)
 	err := cmd.Start()
 	assertErrNil(err, t)
 
@@ -91,7 +91,7 @@ func Test_downloadWithGitLayers(t *testing.T) {
 	fmt.Printf("Testing git layering ... ")
 	rootfsDest := "./ubuntu"
 	defer os.RemoveAll(rootfsDest)
-	cmd := exec.Command(dlrootfsBinary, "-i", gitImage, "-d", rootfsDest, "-g")
+	cmd := exec.Command(dlrootfsBinary, gitImage, "-d", rootfsDest, "-g")
 	err := cmd.Start()
 	assertErrNil(err, t)
 

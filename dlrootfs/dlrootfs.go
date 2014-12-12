@@ -12,41 +12,50 @@ import (
 const VERSION string = "1.4.0"
 
 var (
-	rootfsDest    *string = flag.String("d", "./rootfs", "destination of the resulting rootfs directory")
-	imageFullName *string = flag.String("i", "", "name of the image <repository>/<image>:<tag>")
-	credentials   *string = flag.String("u", "", "docker hub credentials: <username>:<password>")
-	gitLayering   *bool   = flag.Bool("g", false, "use git layering")
-	version       *bool   = flag.Bool("v", false, "display dlrootfs version")
+	globalFlagset = flag.NewFlagSet("dlrootfs", flag.ExitOnError)
+
+	rootfsDest  *string = globalFlagset.String("d", "./rootfs", "destination of the resulting rootfs directory")
+	credentials *string = globalFlagset.String("u", "", "docker hub credentials: <username>:<password>")
+	gitLayering *bool   = globalFlagset.Bool("g", false, "use git layering")
 )
 
 func init() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>]\n\n")
+	globalFlagset.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: dlrootfs -i <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>] [-g]\n\n")
 		fmt.Fprintf(os.Stderr, "Examples:\n")
 		fmt.Fprintf(os.Stderr, "  dlrootfs -i ubuntu  #if no tag, use latest\n")
 		fmt.Fprintf(os.Stderr, "  dlrootfs -i ubuntu:precise -d ubuntu_rootfs\n")
 		fmt.Fprintf(os.Stderr, "  dlrootfs -i dockefile/elasticsearch:latest\n")
 		fmt.Fprintf(os.Stderr, "  dlrootfs -i my_repo/my_image:latest -u username:password\n")
+		fmt.Fprintf(os.Stderr, "  dlrootfs version\n")
 		fmt.Fprintf(os.Stderr, "Default:\n")
-		flag.PrintDefaults()
+		globalFlagset.PrintDefaults()
 	}
 }
 
 func main() {
-	flag.Parse()
 
-	if *version {
+	if len(os.Args) <= 1 {
+		globalFlagset.Usage()
+		return
+	}
+
+	imageNameTag := os.Args[1]
+
+	if imageNameTag == "version" {
 		fmt.Println(VERSION)
 		return
 	}
 
-	if *imageFullName == "" {
-		flag.Usage()
+	globalFlagset.Parse(os.Args[2:])
+
+	if imageNameTag == "" {
+		globalFlagset.Usage()
 		return
 	}
 
-	fmt.Printf("Retrieving %v info from the DockerHub ...\n", *imageFullName)
-	pullContext, err := dlrootfs.RequestPullContext(*imageFullName, *credentials)
+	fmt.Printf("Retrieving %v info from the DockerHub ...\n", imageNameTag)
+	pullContext, err := dlrootfs.RequestPullContext(imageNameTag, *credentials)
 	if err != nil {
 		log.Fatal(err)
 	}
