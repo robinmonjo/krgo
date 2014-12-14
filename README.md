@@ -16,15 +16,15 @@ Default:
   -g=false: use git layering
   -u="": docker hub credentials: <username>:<password>
 ````
-#### `-g` option
+#### `-g` flag
 
-As explained [in the doc](https://docs.docker.com/terms/layer/), docker images are a set of layers. Using the `-g` option,
+As explained [in the doc](https://docs.docker.com/terms/layer/), docker images are a set of layers. Using the `-g` flag,
 `dlrootfs` will download the file system in a git repository where each layer is downloaded in a separate branch:
 
 ![Alt text](https://dl.dropboxusercontent.com/u/6543817/dlrootfs-readme/dlrootfs-g.png)
 
 The screenshot above is the resulting rootfs of `dlrootfs ubuntu -g`. We can clearly see the image is composed of 5 layers.
-`layer(n)_*` result from `git checkout -b layer(n-1)_*` with data from `layer(n)`.
+`layer(n)_*` results from `git checkout -b layer(n-1)_*` with data from `layer(n)`.
 
 It allows to use git to see diffs between layers, checkout a new branch, work on the rootfs with a container engine, review
 and commit changes, etc. It also opens the path for `docker push` without docker (coming soon).
