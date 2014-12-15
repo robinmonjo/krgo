@@ -15,10 +15,15 @@ type GitRepo struct {
 	Path string
 }
 
+func IsGitRepo(path string) bool {
+	_, err := os.Stat(path + "/.git")
+	return err == nil
+}
+
 func NewGitRepo(path string) (*GitRepo, error) {
 	r := &GitRepo{Path: path}
 
-	if _, err := os.Stat(path + "/.git"); err == nil {
+	if IsGitRepo(r.Path) {
 		return r, nil
 	}
 

@@ -10,7 +10,10 @@ import (
 )
 
 func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
-	//if not git repo, return
+
+	if !IsGitRepo(rootfs) {
+		return nil, fmt.Errorf("%v doesn't appear to be a git repository", rootfs)
+	}
 
 	gitRepo, err := NewGitRepo(rootfs)
 
