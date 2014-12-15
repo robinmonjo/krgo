@@ -41,7 +41,7 @@ func RequestPullContext(imageNameTag, credentials string) (*PullContext, error) 
 
 	hostname, _, err := registry.ResolveRepositoryName(context.ImageName)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to find repository %v", err)
+		return nil, fmt.Errorf("unable to find repository %v", err)
 	}
 	context.Endpoint, err = registry.NewEndpoint(hostname, []string{})
 	if err != nil {
@@ -52,7 +52,7 @@ func RequestPullContext(imageNameTag, credentials string) (*PullContext, error) 
 	if credentials != "" {
 		credentialsSplit := strings.SplitN(credentials, ":", 2)
 		if len(credentialsSplit) != 2 {
-			return nil, fmt.Errorf("Invalid credentials %v", credentials)
+			return nil, fmt.Errorf("invalid credentials %v", credentials)
 		}
 		authConfig.Username = credentialsSplit[0]
 		authConfig.Password = credentialsSplit[1]
@@ -62,17 +62,17 @@ func RequestPullContext(imageNameTag, credentials string) (*PullContext, error) 
 
 	context.Session, err = registry.NewSession(authConfig, registry.HTTPRequestFactory(metaHeaders), context.Endpoint, true)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to create Docker Hub session %v", err)
+		return nil, fmt.Errorf("unable to create Docker Hub session %v", err)
 	}
 
 	context.RepoData, err = context.Session.GetRepositoryData(context.ImageName)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to get repository data %v", err)
+		return nil, fmt.Errorf("unable to get repository data %v", err)
 	}
 
 	tagsList, err := context.Session.GetRemoteTags(context.RepoData.Endpoints, context.ImageName, context.RepoData.Tokens)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to find tag list %v", err)
+		return nil, fmt.Errorf("unable to find tag list %v", err)
 	}
 
 	context.ImageId = tagsList[context.ImageTag]
@@ -80,7 +80,7 @@ func RequestPullContext(imageNameTag, credentials string) (*PullContext, error) 
 	//Download image history (get back all the layers)
 	context.ImageHistory, err = context.Session.GetRemoteHistory(context.ImageId, context.RepoData.Endpoints[0], context.RepoData.Tokens)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to get back image history %v", err)
+		return nil, fmt.Errorf("unable to get back image history %v", err)
 	}
 	return context, nil
 }
@@ -89,13 +89,13 @@ func DownloadImage(context *PullContext, rootfsDest string, gitLayering, printPr
 
 	err := os.MkdirAll(rootfsDest, 0700)
 	if err != nil {
-		return fmt.Errorf("Failed to create directory %v: %v", rootfsDest, err)
+		return fmt.Errorf("failed to create directory %v: %v", rootfsDest, err)
 	}
 
 	var gitRepo *GitRepo
 	if gitLayering {
 		if gitRepo, err = NewGitRepo(rootfsDest); err != nil {
-			return fmt.Errorf("Failed to create git repository %v", err)
+			return fmt.Errorf("failed to create git repository %v", err)
 		}
 	}
 
@@ -136,7 +136,7 @@ func DownloadImage(context *PullContext, rootfsDest string, gitLayering, printPr
 		if gitLayering {
 			//create a git branch
 			if _, err = gitRepo.CheckoutB("layer" + strconv.Itoa(cpt) + "_" + truncateID(layerId)); err != nil {
-				return fmt.Errorf("Failed to checkout %v", err)
+				return fmt.Errorf("failed to checkout %v", err)
 			}
 		}
 
@@ -161,11 +161,11 @@ func DownloadImage(context *PullContext, rootfsDest string, gitLayering, printPr
 		if gitLayering {
 			_, err = gitRepo.Add(".")
 			if err != nil {
-				return fmt.Errorf("Failed to add changes %v", err)
+				return fmt.Errorf("failed to add changes %v", err)
 			}
 			_, err = gitRepo.Commit("adding layer " + strconv.Itoa(cpt))
 			if err != nil {
-				return fmt.Errorf("Failed to commit changes %v", err)
+				return fmt.Errorf("failed to commit changes %v", err)
 			}
 		}
 
