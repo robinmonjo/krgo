@@ -5,6 +5,12 @@ import (
 	"os/exec"
 )
 
+const (
+	DIFF_ADDED    string = "A"
+	DIFF_MODIFIED string = "M"
+	DIFF_DELETED  string = "D"
+)
+
 type GitRepo struct {
 	Path string
 }
@@ -51,6 +57,10 @@ func (r *GitRepo) Commit(message string) ([]byte, error) {
 
 func (r *GitRepo) Branch() ([]byte, error) {
 	return r.execInWorkTree("branch")
+}
+
+func (r *GitRepo) DiffStatusName(br1, br2 string) ([]byte, error) {
+	return r.execInWorkTree("diff", br1+".."+br2, "--name-status")
 }
 
 func (r *GitRepo) execInWorkTree(args ...string) ([]byte, error) {
