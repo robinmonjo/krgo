@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/docker/docker/pkg/archive"
@@ -28,7 +29,8 @@ func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		dType := strings.SplitN(line, "\t", 2)[0]
-		path := strings.SplitN(line, "\t", 2)[1]
+		path := "/" + strings.SplitN(line, "\t", 2)[1] // important to consider the / for ExportChanges
+		fmt.Println("DIFF: ", line, "dtype", dType, "path", path)
 
 		change := archive.Change{Path: path}
 
@@ -41,6 +43,7 @@ func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
 			change.Kind = archive.ChangeDelete
 		}
 
+		fmt.Println(change)
 		changes = append(changes, change)
 
 		if err := scanner.Err(); err != nil {
@@ -48,4 +51,13 @@ func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
 		}
 	}
 	return archive.ExportChanges(rootfs, changes)
+}
+
+func WriteArchiveToFile(archive archive.Archive, dest string) error {
+	reader := bufio.NewReader(archive)
+	tar, err := os.Create(dest)
+	defer tar.Close()
+
+	_, err = reader.WriteTo(tar)
+	return err
 }

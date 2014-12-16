@@ -12,49 +12,76 @@ import (
 const VERSION string = "1.4.0"
 
 var (
-	globalFlagset = flag.NewFlagSet("dlrootfs", flag.ExitOnError)
+	pullFlagSet         = flag.NewFlagSet("pull", flag.ExitOnError)
+	rootfsDest  *string = pullFlagSet.String("d", "./rootfs", "destination of the resulting rootfs directory")
+	credentials *string = pullFlagSet.String("u", "", "docker hub credentials: <username>:<password>")
+	gitLayering *bool   = pullFlagSet.Bool("g", false, "use git layering")
 
-	rootfsDest  *string = globalFlagset.String("d", "./rootfs", "destination of the resulting rootfs directory")
-	credentials *string = globalFlagset.String("u", "", "docker hub credentials: <username>:<password>")
-	gitLayering *bool   = globalFlagset.Bool("g", false, "use git layering")
+	pushFlagSet         = flag.NewFlagSet("push", flag.ExitOnError)
+	baseBranch  *string = pushFlagSet.String("br1", "", "base branch")
+	newBranch   *string = pushFlagSet.String("br2", "", "new branch")
+	rootfs      *string = pushFlagSet.String("d", "", "rootfs path")
 )
 
 func init() {
-	globalFlagset.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: dlrootfs <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>] [-g]\n\n")
-		fmt.Fprintf(os.Stderr, "Examples:\n")
-		fmt.Fprintf(os.Stderr, "  dlrootfs ubuntu  #if no tag, use latest\n")
-		fmt.Fprintf(os.Stderr, "  dlrootfs ubuntu:precise -d ubuntu_rootfs\n")
-		fmt.Fprintf(os.Stderr, "  dlrootfs dockefile/elasticsearch:latest\n")
-		fmt.Fprintf(os.Stderr, "  dlrootfs my_repo/my_image:latest -u username:password\n")
-		fmt.Fprintf(os.Stderr, "  dlrootfs version\n")
-		fmt.Fprintf(os.Stderr, "Default:\n")
-		globalFlagset.PrintDefaults()
+	pullFlagSet.Usage = func() {
+		fmt.Fprintf(os.Stderr, "PULL:\n  dlrootfs pull <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>] [-g]\n\n")
+		fmt.Fprintf(os.Stderr, "DEFAULT:\n")
+		pullFlagSet.PrintDefaults()
 	}
+
+	pushFlagSet.Usage = func() {
+		fmt.Fprintf(os.Stderr, "PUSH:\n  dlrootfs push ...\n\n")
+		fmt.Fprintf(os.Stderr, "DEFAULT:\n")
+		pushFlagSet.PrintDefaults()
+	}
+}
+
+func globalUsage() {
+	fmt.Fprintf(os.Stderr, "GLOBAL USAGE:\n  dlrootfs pull\n  dlrootfs push\n\n")
+	pullFlagSet.Usage()
+	fmt.Fprintf(os.Stderr, "\n")
+	pushFlagSet.Usage()
 }
 
 func main() {
 
 	if len(os.Args) <= 1 {
-		globalFlagset.Usage()
+		globalUsage()
 		return
 	}
 
-	imageNameTag := os.Args[1]
+	cmd := os.Args[1]
+	subArgs := os.Args[2:]
 
-	if imageNameTag == "version" {
-		fmt.Println(VERSION)
-		return
+	switch cmd {
+	case "pull":
+		pullCmd(subArgs)
+	case "push":
+		pushCmd(subArgs)
+	case "version":
+		versionCmd()
+	default:
+		globalUsage()
 	}
 
-	globalFlagset.Parse(os.Args[2:])
+}
+
+func versionCmd() {
+	fmt.Println(VERSION)
+}
+
+func pullCmd(args []string) {
+	imageNameTag := args[0]
+
+	pullFlagSet.Parse(args[1:])
 
 	if imageNameTag == "" {
-		globalFlagset.Usage()
+		pullFlagSet.Usage()
 		return
 	}
 
-	fmt.Printf("Retrieving %v info from the DockerHub ...\n", imageNameTag)
+	fmt.Printf("Retrieving %v info from the docker hub ...\n", imageNameTag)
 	pullContext, err := dlrootfs.RequestPullContext(imageNameTag, *credentials)
 	if err != nil {
 		log.Fatal(err)
@@ -70,5 +97,17 @@ func main() {
 	fmt.Printf("\nRootfs of %v:%v in %v\n", pullContext.ImageName, pullContext.ImageTag, *rootfsDest)
 	if *credentials != "" {
 		fmt.Printf("WARNING: don't forget to remove your docker hub credentials from your history !!\n")
+	}
+}
+
+func pushCmd(args []string) {
+	pushFlagSet.Parse(args)
+	changes, err := dlrootfs.ExportChanges(*baseBranch, *newBranch, *rootfs)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = dlrootfs.WriteArchiveToFile(changes, "./changes.tar")
+	if err != nil {
+		log.Fatal(err)
 	}
 }
