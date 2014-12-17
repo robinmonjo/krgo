@@ -30,7 +30,6 @@ func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
 		line := scanner.Text()
 		dType := strings.SplitN(line, "\t", 2)[0]
 		path := "/" + strings.SplitN(line, "\t", 2)[1] // important to consider the / for ExportChanges
-		fmt.Println("DIFF: ", line, "dtype", dType, "path", path)
 
 		change := archive.Change{Path: path}
 
@@ -43,7 +42,6 @@ func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
 			change.Kind = archive.ChangeDelete
 		}
 
-		fmt.Println(change)
 		changes = append(changes, change)
 
 		if err := scanner.Err(); err != nil {
@@ -52,6 +50,49 @@ func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
 	}
 	return archive.ExportChanges(rootfs, changes)
 }
+
+/*func PushImageLayer() {
+  //1: define a new id from the commit hash GenerateRandomID in docker utils
+  //2: load layer_info.json and change the id
+  //3: get back raw json
+  jsonRaw, err := ioutil.ReadFile(path.Join(s.graph.Root, imgID, "json")) //layerinfo.json
+
+  //4: prepare payload
+  imgData := &registry.ImgData{
+    ID: imgID,
+  }
+
+  // Send the json
+  if err := r.PushImageJSONRegistry(imgData, jsonRaw, ep, token); err != nil {
+    if err == registry.ErrAlreadyExists {
+      //image already pushed, skipping
+      return "", nil
+    }
+    return "", err
+  }
+
+  log.Debugf("rendered layer for %s of [%d] size", imgData.ID, layerData.Size)
+
+  checksum, checksumPayload, err := r.PushImageLayerRegistry(imgData.ID, utils.ProgressReader(layerData, int(layerData.Size), out, sf, false, utils.TruncateID(imgData.ID), "Pushing"), ep, token, jsonRaw)
+  if err != nil {
+    return "", err
+  }
+  imgData.Checksum = checksum
+  imgData.ChecksumPayload = checksumPayload
+  // Send the checksum
+  if err := r.PushImageChecksumRegistry(imgData, ep, token); err != nil {
+    return "", err
+  }
+
+}
+
+//PushImageJSONRegistry
+//PushImageLayerRegistry
+//PushImageChecksumRegistry ??
+//func (s *TagStore) pushRepository(r *registry.Sessi when multiple images
+
+
+*/
 
 func WriteArchiveToFile(archive archive.Archive, dest string) error {
 	reader := bufio.NewReader(archive)

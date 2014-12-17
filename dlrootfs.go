@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/registry"
+	"github.com/docker/docker/utils"
 )
 
 const MAX_DL_CONCURRENCY int = 7
@@ -130,12 +131,12 @@ func DownloadImage(context *PullContext, rootfsDest string, gitLayering, printPr
 		layerId := context.ImageHistory[i]
 
 		if printProgress {
-			fmt.Printf("\t%v ... ", truncateID(layerId))
+			fmt.Printf("\t%v ... ", utils.TruncateID(layerId))
 		}
 
 		if gitLayering {
 			//create a git branch
-			if _, err = gitRepo.CheckoutB("layer" + strconv.Itoa(cpt) + "_" + truncateID(layerId)); err != nil {
+			if _, err = gitRepo.CheckoutB("layer" + strconv.Itoa(cpt) + "_" + layerId); err != nil {
 				return fmt.Errorf("failed to checkout %v", err)
 			}
 		}

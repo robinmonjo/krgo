@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/docker/docker/registry"
+	"github.com/docker/docker/utils"
 )
 
 type PullingJob struct {
@@ -25,7 +26,8 @@ func NewPullingJob(session *registry.Session, repoData *registry.RepositoryData,
 }
 
 func (job *PullingJob) Start() {
-	fmt.Printf("\tPulling fs layer %v\n", truncateID(job.LayerId))
+	truncatedId := utils.TruncateID(job.LayerId)
+	fmt.Printf("\tPulling fs layer %v\n", truncatedId)
 	endpoint := job.RepositoryData.Endpoints[0]
 	tokens := job.RepositoryData.Tokens
 
@@ -34,7 +36,7 @@ func (job *PullingJob) Start() {
 		return
 	}
 	job.LayerData, job.Err = job.Session.GetRemoteImageLayer(job.LayerId, endpoint, tokens, int64(job.LayerSize))
-	fmt.Printf("\tDone %v\n", truncateID(job.LayerId))
+	fmt.Printf("\tDone %v\n", truncatedId)
 }
 
 func (job *PullingJob) Error() error {
