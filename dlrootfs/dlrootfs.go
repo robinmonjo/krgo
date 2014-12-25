@@ -20,7 +20,8 @@ var (
 	pushFlagSet         = flag.NewFlagSet("push", flag.ExitOnError)
 	baseBranch  *string = pushFlagSet.String("br1", "", "base branch")
 	newBranch   *string = pushFlagSet.String("br2", "", "new branch")
-	rootfs      *string = pushFlagSet.String("d", "", "rootfs path")
+	rootfs      *string = pushFlagSet.String("d", "./rootfs", "rootfs path")
+	creds       *string = pushFlagSet.String("u", "", "docker hub credentials: <username>:<password>")
 )
 
 func init() {
@@ -82,7 +83,7 @@ func pullCmd(args []string) {
 	}
 
 	fmt.Printf("Retrieving %v info from the docker hub ...\n", imageNameTag)
-	pullContext, err := dlrootfs.RequestPullContext(imageNameTag, *credentials)
+	pullContext, err := dlrootfs.InitPullContext(imageNameTag, *credentials)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -101,13 +102,22 @@ func pullCmd(args []string) {
 }
 
 func pushCmd(args []string) {
-	pushFlagSet.Parse(args)
+	imageNameTag := args[0]
+
+	pushFlagSet.Parse(args[1:])
+
 	changes, err := dlrootfs.ExportChanges(*baseBranch, *newBranch, *rootfs)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = dlrootfs.WriteArchiveToFile(changes, "./changes.tar")
+
+	err = dlrootfs.PushImageLayer(imageNameTag, *rootfs, *creds, changes)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	/*err = dlrootfs.WriteArchiveToFile(changes, "./changes.tar")
+	if err != nil {
+		log.Fatal(err)
+	}*/
 }

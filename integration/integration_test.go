@@ -60,7 +60,7 @@ func Test_downloadPrivateImage(t *testing.T) {
 func downloadImage(imageName, rootfsDest, credentials string, checkFs bool, assert func(error, *testing.T), t *testing.T) {
 	defer os.RemoveAll(rootfsDest)
 
-	cmd := exec.Command(dlrootfsBinary, imageName, "-d", rootfsDest, "-u", credentials)
+	cmd := exec.Command(dlrootfsBinary, "pull", imageName, "-d", rootfsDest, "-u", credentials)
 	err := cmd.Start()
 	assertErrNil(err, t)
 
@@ -91,7 +91,7 @@ func Test_downloadWithGitLayers(t *testing.T) {
 	fmt.Printf("Testing git layering ... ")
 	rootfsDest := "./ubuntu"
 	defer os.RemoveAll(rootfsDest)
-	cmd := exec.Command(dlrootfsBinary, gitImage, "-d", rootfsDest, "-g")
+	cmd := exec.Command(dlrootfsBinary, "pull", gitImage, "-d", rootfsDest, "-g")
 	err := cmd.Start()
 	assertErrNil(err, t)
 
@@ -102,11 +102,11 @@ func Test_downloadWithGitLayers(t *testing.T) {
 	out, _ := gitRepo.Branch()
 
 	expectedBranches := []string{
-		"layer0_511136ea3c5a",
-		"layer1_01bf15a18638",
-		"layer2_30541f8f3062",
-		"layer3_e1cdf371fbde",
-		"* layer4_9bd07e480c5b",
+		"layer0_511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158",
+		"layer1_c7b7c64195686444123ef370322b5270b098c77dc2d62208e8a9ce28a11a63f9",
+		"layer2_70c8faa62a44b9f6a70ec3a018ec14ec95717ebed2016430e57fec1abc90a879",
+		"layer3_d735006ad9c1b1563e021d7a4fecfd75ed36d4384e2a1c42e78d8261b83d6271",
+		"* layer4_04c5d3b7b0656168630d3ba35d8889bd0e9caafcaeb3004d2bfbc47e7c5d35d2",
 	}
 
 	branches := strings.Split(string(out), "\n")

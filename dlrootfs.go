@@ -1,14 +1,18 @@
 package dlrootfs
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"runtime"
 	"strconv"
 	"strings"
 
+	_ "github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/registry"
 	"github.com/docker/docker/utils"
@@ -16,35 +20,37 @@ import (
 
 const MAX_DL_CONCURRENCY int = 7
 
-type PullContext struct {
+// Global context needed to connect to the docker hub
+type HubContext struct {
 	ImageName       string
 	ImageTag        string
 	UserCredentials string
 
-	Endpoint *registry.Endpoint
+	RepositoryHostname string
+
 	Session  *registry.Session
 	RepoData *registry.RepositoryData
+}
+
+// Pulling image specific context
+type PullContext struct {
+	HubContext
 
 	ImageId      string
 	ImageHistory []string
 }
 
-func RequestPullContext(imageNameTag, credentials string) (*PullContext, error) {
-	context := &PullContext{}
+func initHubContext(imageNameTag, credentials string) (*HubContext, error) {
+	context := &HubContext{}
 
-	if strings.Contains(imageNameTag, ":") {
-		context.ImageName = strings.Split(imageNameTag, ":")[0]
-		context.ImageTag = strings.Split(imageNameTag, ":")[1]
-	} else {
-		context.ImageName = imageNameTag
-		context.ImageTag = "latest"
-	}
+	context.ImageName, context.ImageTag = extractImageNameTag(imageNameTag)
 
 	hostname, _, err := registry.ResolveRepositoryName(context.ImageName)
+	context.RepositoryHostname = hostname
 	if err != nil {
 		return nil, fmt.Errorf("unable to find repository %v", err)
 	}
-	context.Endpoint, err = registry.NewEndpoint(hostname, []string{})
+	endpoint, err := registry.NewEndpoint(hostname, []string{})
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +67,7 @@ func RequestPullContext(imageNameTag, credentials string) (*PullContext, error) 
 
 	var metaHeaders map[string][]string
 
-	context.Session, err = registry.NewSession(authConfig, registry.HTTPRequestFactory(metaHeaders), context.Endpoint, true)
+	context.Session, err = registry.NewSession(authConfig, registry.HTTPRequestFactory(metaHeaders), endpoint, true)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create Docker Hub session %v", err)
 	}
@@ -70,7 +76,18 @@ func RequestPullContext(imageNameTag, credentials string) (*PullContext, error) 
 	if err != nil {
 		return nil, fmt.Errorf("unable to get repository data %v", err)
 	}
+	return context, nil
+}
 
+// Pulling specific functions
+
+func InitPullContext(imageNameTag, credentials string) (*PullContext, error) {
+	hubContext, err := initHubContext(imageNameTag, credentials)
+	if err != nil {
+		return nil, err
+	}
+
+	context := &PullContext{HubContext: *hubContext}
 	tagsList, err := context.Session.GetRemoteTags(context.RepoData.Endpoints, context.ImageName, context.RepoData.Tokens)
 	if err != nil {
 		return nil, fmt.Errorf("unable to find tag list %v", err)
@@ -157,7 +174,7 @@ func DownloadImage(context *PullContext, rootfsDest string, gitLayering, printPr
 		}
 
 		prettyInfo, _ := json.MarshalIndent(layerInfo, "", "  ")
-		ioutil.WriteFile(rootfsDest+"/layer_info.json", prettyInfo, 0644)
+		ioutil.WriteFile(path.Join(rootfsDest, "image.json"), prettyInfo, 0644)
 
 		if gitLayering {
 			_, err = gitRepo.Add(".")
@@ -177,4 +194,123 @@ func DownloadImage(context *PullContext, rootfsDest string, gitLayering, printPr
 		}
 	}
 	return nil
+}
+
+// Pushing specific functions
+func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
+
+	if !IsGitRepo(rootfs) {
+		return nil, fmt.Errorf("%v doesn't appear to be a git repository", rootfs)
+	}
+
+	gitRepo, err := NewGitRepo(rootfs)
+
+	diff, err := gitRepo.DiffStatusName(br1, br2)
+	if err != nil {
+		return nil, fmt.Errorf("failed to diff %v and %v: %v, %v", br1, br2, err, string(diff))
+	}
+
+	var changes []archive.Change
+
+	scanner := bufio.NewScanner(bytes.NewReader(diff))
+	for scanner.Scan() {
+		line := scanner.Text()
+		dType := strings.SplitN(line, "\t", 2)[0]
+		path := "/" + strings.SplitN(line, "\t", 2)[1] // important to consider the / for ExportChanges
+
+		change := archive.Change{Path: path}
+
+		switch dType {
+		case DIFF_MODIFIED:
+			change.Kind = archive.ChangeModify
+		case DIFF_ADDED:
+			change.Kind = archive.ChangeAdd
+		case DIFF_DELETED:
+			change.Kind = archive.ChangeDelete
+		}
+
+		changes = append(changes, change)
+
+		if err := scanner.Err(); err != nil {
+			return nil, err
+		}
+	}
+	return archive.ExportChanges(rootfs, changes)
+}
+
+func PushImageLayer(imageNameTag, rootfs, credentials string, layerData archive.Archive) error {
+
+	context, err := initHubContext(imageNameTag, credentials)
+	if err != nil {
+		return err
+	}
+
+	//Load image data
+	image, err := LoadImageFromJson(path.Join(rootfs, "image.json"))
+	if err != nil {
+		return err
+	}
+
+	_, imageTag := extractImageNameTag(imageNameTag)
+	jsonRaw, err := ioutil.ReadFile(path.Join(rootfs, "image.json"))
+
+	//4: prepare payload
+	imgData := &registry.ImgData{ID: image.ID, Tag: imageTag}
+	if imageTag == "latest" {
+		imgData.Tag = ""
+	}
+
+	fmt.Println("Image data = ", imgData)
+
+	// Register all the images in a repository with the registry
+	// If an image is not in this list it will not be associated with the repository
+	repoData, err := context.Session.PushImageJSONIndex("robinmonjo/debian", []*registry.ImgData{imgData}, false, nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = context.Session.PushImageJSONIndex("robinmonjo/debian", []*registry.ImgData{imgData}, true, repoData.Endpoints)
+	if err != nil {
+		return err
+	}
+
+	// Send the json
+	if err := context.Session.PushImageJSONRegistry(imgData, jsonRaw, repoData.Endpoints[0], repoData.Tokens); err != nil {
+		return err
+	}
+
+	fmt.Printf("JSON registry\n")
+	//fmt.Printf("rendered layer for %s of [%d] size", imgData.ID, layerData.Size)
+	tmpArchive, err := archive.NewTempArchive(layerData, "/tmp/")
+	if err != nil {
+		return err
+	}
+	checksum, checksumPayload, err := context.Session.PushImageLayerRegistry(imgData.ID, tmpArchive, repoData.Endpoints[0], repoData.Tokens, jsonRaw)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Layer pushed\n")
+
+	imgData.Checksum = checksum
+	imgData.ChecksumPayload = checksumPayload
+	// Send the checksum
+	if err := context.Session.PushImageChecksumRegistry(imgData, repoData.Endpoints[0], repoData.Tokens); err != nil {
+		return err
+	}
+	return nil
+}
+
+//PushImageJSONRegistry
+//PushImageLayerRegistry
+//PushImageChecksumRegistry ??
+//func (s *TagStore) pushRepository(r *registry.Sessi when multiple images
+
+func WriteArchiveToFile(archive archive.Archive, dest string) error {
+	reader := bufio.NewReader(archive)
+	tar, err := os.Create(dest)
+	defer tar.Close()
+
+	_, err = reader.WriteTo(tar)
+	return err
 }
