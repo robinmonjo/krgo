@@ -1,44 +1,36 @@
 package dlrootfs
 
 import (
-	"encoding/json"
-	"os"
 	"strings"
-
-	"github.com/docker/docker/image"
-	"github.com/docker/docker/utils"
 )
 
-func extractImageNameTag(imageNameTag string) (imageName, imageTag string) {
+func truncateID(id string) string {
+	shortLen := 12
+	if len(id) < shortLen {
+		shortLen = len(id)
+	}
+	return id[:shortLen]
+}
+
+func ParseCredentials(credentials string) (string, string) {
+	credentialsSplit := strings.SplitN(credentials, ":", 2)
+	if len(credentialsSplit) != 2 {
+		return "", ""
+	}
+	return credentialsSplit[0], credentialsSplit[1]
+}
+
+func ParseImageNameTag(imageNameTag string) (imageName string, imageTag string) {
 	if strings.Contains(imageNameTag, ":") {
-		imageName = strings.Split(imageNameTag, ":")[0]
-		imageTag = strings.Split(imageNameTag, ":")[1]
+		imageName = strings.SplitN(imageNameTag, ":", 2)[0]
+		imageTag = strings.SplitN(imageNameTag, ":", 2)[1]
 	} else {
 		imageName = imageNameTag
 		imageTag = "latest"
 	}
+
+	if !strings.Contains(imageName, "/") {
+		imageName = "library/" + imageName
+	}
 	return
-}
-
-// directly inspired by LoadImage in the docker image package
-func LoadImageFromJson(jsonPath string) (*image.Image, error) {
-	// Open the JSON file to decode by streaming
-	jsonSource, err := os.Open(jsonPath)
-	if err != nil {
-		return nil, err
-	}
-	defer jsonSource.Close()
-
-	img := &image.Image{}
-	dec := json.NewDecoder(jsonSource)
-
-	// Decode the JSON data
-	if err := dec.Decode(img); err != nil {
-		return nil, err
-	}
-	if err := utils.ValidateID(img.ID); err != nil {
-		return nil, err
-	}
-	img.Size = -1
-	return img, nil
 }

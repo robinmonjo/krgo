@@ -20,35 +20,15 @@ import (
 
 const MAX_DL_CONCURRENCY int = 7
 
-// Global context needed to connect to the docker hub
-type HubContext struct {
-	ImageName       string
-	ImageTag        string
-	UserCredentials string
-
-	RepositoryHostname string
-
-	Session  *registry.Session
+type HubSession struct {
+	registry.Session
 	RepoData *registry.RepositoryData
 }
 
-// Pulling image specific context
-type PullContext struct {
-	HubContext
-
-	ImageId      string
-	ImageHistory []string
-}
-
-func initHubContext(imageNameTag, credentials string) (*HubContext, error) {
-	context := &HubContext{}
-
-	context.ImageName, context.ImageTag = extractImageNameTag(imageNameTag)
-
-	hostname, _, err := registry.ResolveRepositoryName(context.ImageName)
-	context.RepositoryHostname = hostname
+func NewHubSession(imageName, userName, password string) (*HubSession, error) {
+	hostname, _, err := registry.ResolveRepositoryName(imageName)
 	if err != nil {
-		return nil, fmt.Errorf("unable to find repository %v", err)
+		return nil, fmt.Errorf("failed to find repository for image %v: %v", imageName, err)
 	}
 	endpoint, err := registry.NewEndpoint(hostname, []string{})
 	if err != nil {
@@ -56,56 +36,51 @@ func initHubContext(imageNameTag, credentials string) (*HubContext, error) {
 	}
 
 	authConfig := &registry.AuthConfig{}
-	if credentials != "" {
-		credentialsSplit := strings.SplitN(credentials, ":", 2)
-		if len(credentialsSplit) != 2 {
-			return nil, fmt.Errorf("invalid credentials %v", credentials)
-		}
-		authConfig.Username = credentialsSplit[0]
-		authConfig.Password = credentialsSplit[1]
+	if userName != "" && password != "" {
+		authConfig.Username = userName
+		authConfig.Password = password
 	}
 
 	var metaHeaders map[string][]string
 
-	context.Session, err = registry.NewSession(authConfig, registry.HTTPRequestFactory(metaHeaders), endpoint, true)
+	session, err := registry.NewSession(authConfig, registry.HTTPRequestFactory(metaHeaders), endpoint, true)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create Docker Hub session %v", err)
+		return nil, fmt.Errorf("failed to create docker hub session %v", err)
 	}
 
-	context.RepoData, err = context.Session.GetRepositoryData(context.ImageName)
+	repoData, err := session.GetRepositoryData(imageName)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get repository data %v", err)
+		return nil, fmt.Errorf("failed to get repository data %v", err)
 	}
-	return context, nil
+
+	return &HubSession{*session, repoData}, nil
 }
 
-// Pulling specific functions
+func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest string, gitLayering, printProgress bool) error {
 
-func InitPullContext(imageNameTag, credentials string) (*PullContext, error) {
-	hubContext, err := initHubContext(imageNameTag, credentials)
+	tagsList, err := s.GetRemoteTags(s.RepoData.Endpoints, imageName, s.RepoData.Tokens)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to retrieve tag list %v", err)
 	}
 
-	context := &PullContext{HubContext: *hubContext}
-	tagsList, err := context.Session.GetRemoteTags(context.RepoData.Endpoints, context.ImageName, context.RepoData.Tokens)
-	if err != nil {
-		return nil, fmt.Errorf("unable to find tag list %v", err)
+	imageId := tagsList[imageTag]
+	if printProgress {
+		fmt.Printf("Image ID: %v\n", imageId)
 	}
 
-	context.ImageId = tagsList[context.ImageTag]
-
-	//Download image history (get back all the layers)
-	context.ImageHistory, err = context.Session.GetRemoteHistory(context.ImageId, context.RepoData.Endpoints[0], context.RepoData.Tokens)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get back image history %v", err)
+	//Download image history
+	var imageHistory []string
+	for _, ep := range s.RepoData.Endpoints {
+		imageHistory, err = s.GetRemoteHistory(imageId, ep, s.RepoData.Tokens)
+		if err == nil {
+			break
+		}
 	}
-	return context, nil
-}
+	if err != nil {
+		return fmt.Errorf("failed to get back image history %v", err)
+	}
 
-func DownloadImage(context *PullContext, rootfsDest string, gitLayering, printProgress bool) error {
-
-	err := os.MkdirAll(rootfsDest, 0700)
+	err = os.MkdirAll(rootfsDest, 0700)
 	if err != nil {
 		return fmt.Errorf("failed to create directory %v: %v", rootfsDest, err)
 	}
@@ -120,12 +95,12 @@ func DownloadImage(context *PullContext, rootfsDest string, gitLayering, printPr
 	queue := NewQueue(MAX_DL_CONCURRENCY)
 
 	if printProgress {
-		fmt.Printf("Pulling %d layers:\n", len(context.ImageHistory))
+		fmt.Printf("Pulling %d layers:\n", len(imageHistory))
 	}
 
-	for i := len(context.ImageHistory) - 1; i >= 0; i-- {
-		layerId := context.ImageHistory[i]
-		job := NewPullingJob(context.Session, context.RepoData, layerId)
+	for i := len(imageHistory) - 1; i >= 0; i-- {
+		layerId := imageHistory[i]
+		job := NewPullingJob(s, layerId)
 		queue.Enqueue(job)
 	}
 	<-queue.DoneChan
@@ -142,10 +117,10 @@ func DownloadImage(context *PullContext, rootfsDest string, gitLayering, printPr
 
 	cpt := 0
 
-	for i := len(context.ImageHistory) - 1; i >= 0; i-- {
+	for i := len(imageHistory) - 1; i >= 0; i-- {
 
 		//for each layers
-		layerId := context.ImageHistory[i]
+		layerId := imageHistory[i]
 
 		if printProgress {
 			fmt.Printf("\t%v ... ", utils.TruncateID(layerId))
@@ -175,6 +150,9 @@ func DownloadImage(context *PullContext, rootfsDest string, gitLayering, printPr
 
 		prettyInfo, _ := json.MarshalIndent(layerInfo, "", "  ")
 		ioutil.WriteFile(path.Join(rootfsDest, "image.json"), prettyInfo, 0644)
+		if gitLayering {
+			ioutil.WriteFile(path.Join(rootfsDest, "layersize"), []byte(strconv.Itoa(job.LayerSize)), 0644)
+		}
 
 		if gitLayering {
 			_, err = gitRepo.Add(".")
@@ -240,64 +218,64 @@ func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
 
 func PushImageLayer(imageNameTag, rootfs, credentials string, layerData archive.Archive) error {
 
-	context, err := initHubContext(imageNameTag, credentials)
-	if err != nil {
-		return err
-	}
+	/*	context, err := initHubContext(imageNameTag, credentials)
+		if err != nil {
+			return err
+		}
 
-	//Load image data
-	image, err := LoadImageFromJson(path.Join(rootfs, "image.json"))
-	if err != nil {
-		return err
-	}
+		//Load image data
+		image, err := LoadImageFromJson(path.Join(rootfs, "image.json"))
+		if err != nil {
+			return err
+		}
 
-	_, imageTag := extractImageNameTag(imageNameTag)
-	jsonRaw, err := ioutil.ReadFile(path.Join(rootfs, "image.json"))
+		_, imageTag := extractImageNameTag(imageNameTag)
+		jsonRaw, err := ioutil.ReadFile(path.Join(rootfs, "image.json"))
 
-	//4: prepare payload
-	imgData := &registry.ImgData{ID: image.ID, Tag: imageTag}
-	if imageTag == "latest" {
-		imgData.Tag = ""
-	}
+		//4: prepare payload
+		imgData := &registry.ImgData{ID: image.ID, Tag: imageTag}
+		if imageTag == "latest" {
+			imgData.Tag = ""
+		}
 
-	fmt.Println("Image data = ", imgData)
+		fmt.Println("Image data = ", imgData)
 
-	// Register all the images in a repository with the registry
-	// If an image is not in this list it will not be associated with the repository
-	repoData, err := context.Session.PushImageJSONIndex("robinmonjo/debian", []*registry.ImgData{imgData}, false, nil)
-	if err != nil {
-		return err
-	}
+		// Register all the images in a repository with the registry
+		// If an image is not in this list it will not be associated with the repository
+		repoData, err := context.Session.PushImageJSONIndex("robinmonjo/debian", []*registry.ImgData{imgData}, false, nil)
+		if err != nil {
+			return err
+		}
 
-	_, err = context.Session.PushImageJSONIndex("robinmonjo/debian", []*registry.ImgData{imgData}, true, repoData.Endpoints)
-	if err != nil {
-		return err
-	}
+		_, err = context.Session.PushImageJSONIndex("robinmonjo/debian", []*registry.ImgData{imgData}, true, repoData.Endpoints)
+		if err != nil {
+			return err
+		}
 
-	// Send the json
-	if err := context.Session.PushImageJSONRegistry(imgData, jsonRaw, repoData.Endpoints[0], repoData.Tokens); err != nil {
-		return err
-	}
+		// Send the json
+		if err := context.Session.PushImageJSONRegistry(imgData, jsonRaw, repoData.Endpoints[0], repoData.Tokens); err != nil {
+			return err
+		}
 
-	fmt.Printf("JSON registry\n")
-	//fmt.Printf("rendered layer for %s of [%d] size", imgData.ID, layerData.Size)
-	tmpArchive, err := archive.NewTempArchive(layerData, "/tmp/")
-	if err != nil {
-		return err
-	}
-	checksum, checksumPayload, err := context.Session.PushImageLayerRegistry(imgData.ID, tmpArchive, repoData.Endpoints[0], repoData.Tokens, jsonRaw)
-	if err != nil {
-		return err
-	}
+		fmt.Printf("JSON registry\n")
+		//fmt.Printf("rendered layer for %s of [%d] size", imgData.ID, layerData.Size)
+		tmpArchive, err := archive.NewTempArchive(layerData, "/tmp/")
+		if err != nil {
+			return err
+		}
+		checksum, checksumPayload, err := context.Session.PushImageLayerRegistry(imgData.ID, tmpArchive, repoData.Endpoints[0], repoData.Tokens, jsonRaw)
+		if err != nil {
+			return err
+		}
 
-	fmt.Printf("Layer pushed\n")
+		fmt.Printf("Layer pushed\n")
 
-	imgData.Checksum = checksum
-	imgData.ChecksumPayload = checksumPayload
-	// Send the checksum
-	if err := context.Session.PushImageChecksumRegistry(imgData, repoData.Endpoints[0], repoData.Tokens); err != nil {
-		return err
-	}
+		imgData.Checksum = checksum
+		imgData.ChecksumPayload = checksumPayload
+		// Send the checksum
+		if err := context.Session.PushImageChecksumRegistry(imgData, repoData.Endpoints[0], repoData.Tokens); err != nil {
+			return err
+		}*/
 	return nil
 }
 

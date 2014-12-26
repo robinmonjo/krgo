@@ -65,7 +65,6 @@ func main() {
 	default:
 		globalUsage()
 	}
-
 }
 
 func versionCmd() {
@@ -82,20 +81,22 @@ func pullCmd(args []string) {
 		return
 	}
 
-	fmt.Printf("Retrieving %v info from the docker hub ...\n", imageNameTag)
-	pullContext, err := dlrootfs.InitPullContext(imageNameTag, *credentials)
+	imageName, imageTag := dlrootfs.ParseImageNameTag(imageNameTag)
+	userName, password := dlrootfs.ParseCredentials(*credentials)
+
+	fmt.Printf("Opening a session for %v ...\n", imageName)
+	session, err := dlrootfs.NewHubSession(imageName, userName, password)
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Image ID: %v\n", pullContext.ImageId)
-
-	err = dlrootfs.DownloadImage(pullContext, *rootfsDest, *gitLayering, true)
+	err = session.DownloadFlattenedImage(imageName, imageTag, *rootfsDest, *gitLayering, true)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("\nRootfs of %v:%v in %v\n", pullContext.ImageName, pullContext.ImageTag, *rootfsDest)
+	fmt.Printf("\nRootfs of %v:%v in %v\n", imageName, imageTag, *rootfsDest)
 	if *credentials != "" {
 		fmt.Printf("WARNING: don't forget to remove your docker hub credentials from your history !!\n")
 	}
