@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"runtime"
 	"strconv"
 
@@ -59,7 +60,7 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 
 	imageId := tagsList[imageTag]
 	if printProgress {
-		fmt.Printf("Image ID: %v", imageId)
+		fmt.Printf("Image ID: %v\n", imageId)
 	}
 
 	//Download image history
@@ -143,7 +144,10 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 		}
 
 		prettyInfo, _ := json.MarshalIndent(layerInfo, "", "  ")
-		ioutil.WriteFile(rootfsDest+"/image.json", prettyInfo, 0644)
+		ioutil.WriteFile(path.Join(rootfsDest, "image.json"), prettyInfo, 0644)
+		if gitLayering {
+			ioutil.WriteFile(path.Join(rootfsDest, "layersize"), []byte(strconv.Itoa(job.LayerSize)), 0644)
+		}
 
 		if gitLayering {
 			_, err = gitRepo.Add(".")
