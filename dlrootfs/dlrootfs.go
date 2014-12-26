@@ -12,15 +12,15 @@ import (
 const VERSION string = "1.4.0"
 
 var (
-	globalFlagset = flag.NewFlagSet("dlrootfs", flag.ExitOnError)
+	flagset = flag.NewFlagSet("dlrootfs", flag.ExitOnError)
 
-	rootfsDest  *string = globalFlagset.String("d", "./rootfs", "destination of the resulting rootfs directory")
-	credentials *string = globalFlagset.String("u", "", "docker hub credentials: <username>:<password>")
-	gitLayering *bool   = globalFlagset.Bool("g", false, "use git layering")
+	rootfsDest  *string = flagset.String("d", "./rootfs", "destination of the resulting rootfs directory")
+	credentials *string = flagset.String("u", "", "docker hub credentials: <username>:<password>")
+	gitLayering *bool   = flagset.Bool("g", false, "use git layering")
 )
 
 func init() {
-	globalFlagset.Usage = func() {
+	flagset.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: dlrootfs <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>] [-g]\n\n")
 		fmt.Fprintf(os.Stderr, "Examples:\n")
 		fmt.Fprintf(os.Stderr, "  dlrootfs ubuntu  #if no tag, use latest\n")
@@ -29,45 +29,47 @@ func init() {
 		fmt.Fprintf(os.Stderr, "  dlrootfs my_repo/my_image:latest -u username:password\n")
 		fmt.Fprintf(os.Stderr, "  dlrootfs version\n")
 		fmt.Fprintf(os.Stderr, "Default:\n")
-		globalFlagset.PrintDefaults()
+		flagset.PrintDefaults()
 	}
 }
 
 func main() {
 
 	if len(os.Args) <= 1 {
-		globalFlagset.Usage()
+		flagset.Usage()
 		return
 	}
 
 	imageNameTag := os.Args[1]
 
-	if imageNameTag == "version" {
+	switch imageNameTag {
+	case "version":
 		fmt.Println(VERSION)
-		return
+	case "":
+		flagset.Usage()
+	default:
+		pullImage(imageNameTag, os.Args[2:])
 	}
+}
 
-	globalFlagset.Parse(os.Args[2:])
+func pullImage(imageNameTag string, args []string) {
+	flagset.Parse(args)
 
-	if imageNameTag == "" {
-		globalFlagset.Usage()
-		return
-	}
+	imageName, imageTag := dlrootfs.ParseImageNameTag(imageNameTag)
+	userName, password := dlrootfs.ParseCredentials(*credentials)
 
-	fmt.Printf("Retrieving %v info from the DockerHub ...\n", imageNameTag)
-	pullContext, err := dlrootfs.RequestPullContext(imageNameTag, *credentials)
+	fmt.Printf("Opening a session for %v ...\n", imageName)
+	session, err := dlrootfs.NewHubSession(imageName, userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Image ID: %v\n", pullContext.ImageId)
-
-	err = dlrootfs.DownloadImage(pullContext, *rootfsDest, *gitLayering, true)
+	err = session.DownloadFlattenedImage(imageName, imageTag, *rootfsDest, *gitLayering, true)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("\nRootfs of %v:%v in %v\n", pullContext.ImageName, pullContext.ImageTag, *rootfsDest)
+	fmt.Printf("\nRootfs of %v:%v in %v\n", imageName, imageTag, *rootfsDest)
 	if *credentials != "" {
 		fmt.Printf("WARNING: don't forget to remove your docker hub credentials from your history !!\n")
 	}
