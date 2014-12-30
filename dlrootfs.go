@@ -144,7 +144,7 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 		}
 
 		prettyInfo, _ := json.MarshalIndent(layerInfo, "", "  ")
-		ioutil.WriteFile(path.Join(rootfsDest, "image.json"), prettyInfo, 0644)
+		ioutil.WriteFile(path.Join(rootfsDest, "json"), prettyInfo, 0644)
 		if gitLayering {
 			ioutil.WriteFile(path.Join(rootfsDest, "layersize"), []byte(strconv.Itoa(job.LayerSize)), 0644)
 		}
