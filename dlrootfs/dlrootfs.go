@@ -86,7 +86,6 @@ func pullCmd(args []string) {
 
 	fmt.Printf("Opening a session for %v ...\n", imageName)
 	session, err := dlrootfs.NewHubSession(imageName, userName, password)
-
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -107,18 +106,33 @@ func pushCmd(args []string) {
 
 	pushFlagSet.Parse(args[1:])
 
+	if imageNameTag == "" {
+		pushFlagSet.Usage()
+		return
+	}
+
+	imageName, imageTag := dlrootfs.ParseImageNameTag(imageNameTag)
+	userName, password := dlrootfs.ParseCredentials(*creds)
+
+	fmt.Printf("PUSH Opening a session for %v ...\n", imageName)
+	session, err := dlrootfs.NewHubSession(imageName, userName, password)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Extracting changes\n")
 	changes, err := dlrootfs.ExportChanges(*baseBranch, *newBranch, *rootfs)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = dlrootfs.PushImageLayer(imageNameTag, *rootfs, *creds, changes)
+	err = session.PushImageLayer(changes, imageName, imageTag, *rootfs)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	/*err = dlrootfs.WriteArchiveToFile(changes, "./changes.tar")
-	if err != nil {
-		log.Fatal(err)
-	}*/
+	/*
+		err = dlrootfs.WriteArchiveToFile(changes, "./changes.tar")
+		if err != nil {
+			log.Fatal(err)
+		}*/
 }

@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	_ "github.com/docker/docker/image"
+	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/registry"
 	"github.com/docker/docker/utils"
@@ -149,7 +149,7 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 		}
 
 		prettyInfo, _ := json.MarshalIndent(layerInfo, "", "  ")
-		ioutil.WriteFile(path.Join(rootfsDest, "image.json"), prettyInfo, 0644)
+		ioutil.WriteFile(path.Join(rootfsDest, "json"), prettyInfo, 0644)
 		if gitLayering {
 			ioutil.WriteFile(path.Join(rootfsDest, "layersize"), []byte(strconv.Itoa(job.LayerSize)), 0644)
 		}
@@ -216,66 +216,56 @@ func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
 	return archive.ExportChanges(rootfs, changes)
 }
 
-func PushImageLayer(imageNameTag, rootfs, credentials string, layerData archive.Archive) error {
+func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageTag, rootfs string) error {
 
-	/*	context, err := initHubContext(imageNameTag, credentials)
-		if err != nil {
-			return err
-		}
+	//Load image data
+	image, err := image.LoadImage(rootfs)
+	if err != nil {
+		return err
+	}
 
-		//Load image data
-		image, err := LoadImageFromJson(path.Join(rootfs, "image.json"))
-		if err != nil {
-			return err
-		}
+	jsonRaw, err := ioutil.ReadFile(path.Join(rootfs, "json"))
+	if err != nil {
+		return err
+	}
 
-		_, imageTag := extractImageNameTag(imageNameTag)
-		jsonRaw, err := ioutil.ReadFile(path.Join(rootfs, "image.json"))
+	//4: prepare payload
+	imgData := &registry.ImgData{ID: image.ID, Tag: ""}
 
-		//4: prepare payload
-		imgData := &registry.ImgData{ID: image.ID, Tag: imageTag}
-		if imageTag == "latest" {
-			imgData.Tag = ""
-		}
+	fmt.Println("Image data = ", imgData)
 
-		fmt.Println("Image data = ", imgData)
+	// Register all the images in a repository with the registry
+	// If an image is not in this list it will not be associated with the repository
+	repoData, err := s.PushImageJSONIndex(imageName, []*registry.ImgData{imgData}, false, nil)
+	if err != nil {
+		return err
+	}
 
-		// Register all the images in a repository with the registry
-		// If an image is not in this list it will not be associated with the repository
-		repoData, err := context.Session.PushImageJSONIndex("robinmonjo/debian", []*registry.ImgData{imgData}, false, nil)
-		if err != nil {
-			return err
-		}
+	_, err = s.PushImageJSONIndex(imageName, []*registry.ImgData{imgData}, true, repoData.Endpoints)
+	if err != nil {
+		return err
+	}
 
-		_, err = context.Session.PushImageJSONIndex("robinmonjo/debian", []*registry.ImgData{imgData}, true, repoData.Endpoints)
-		if err != nil {
-			return err
-		}
+	// Send the json
+	if err := s.PushImageJSONRegistry(imgData, jsonRaw, repoData.Endpoints[0], repoData.Tokens); err != nil {
+		return err
+	}
 
-		// Send the json
-		if err := context.Session.PushImageJSONRegistry(imgData, jsonRaw, repoData.Endpoints[0], repoData.Tokens); err != nil {
-			return err
-		}
+	fmt.Printf("JSON registry\n")
+	//fmt.Printf("rendered layer for %s of [%d] size", imgData.ID, layerData.Size)
+	checksum, checksumPayload, err := s.PushImageLayerRegistry(imgData.ID, layerData, repoData.Endpoints[0], repoData.Tokens, jsonRaw)
+	if err != nil {
+		return err
+	}
 
-		fmt.Printf("JSON registry\n")
-		//fmt.Printf("rendered layer for %s of [%d] size", imgData.ID, layerData.Size)
-		tmpArchive, err := archive.NewTempArchive(layerData, "/tmp/")
-		if err != nil {
-			return err
-		}
-		checksum, checksumPayload, err := context.Session.PushImageLayerRegistry(imgData.ID, tmpArchive, repoData.Endpoints[0], repoData.Tokens, jsonRaw)
-		if err != nil {
-			return err
-		}
+	fmt.Printf("Layer pushed\n")
 
-		fmt.Printf("Layer pushed\n")
-
-		imgData.Checksum = checksum
-		imgData.ChecksumPayload = checksumPayload
-		// Send the checksum
-		if err := context.Session.PushImageChecksumRegistry(imgData, repoData.Endpoints[0], repoData.Tokens); err != nil {
-			return err
-		}*/
+	imgData.Checksum = checksum
+	imgData.ChecksumPayload = checksumPayload
+	// Send the checksum
+	if err := s.PushImageChecksumRegistry(imgData, repoData.Endpoints[0], repoData.Tokens); err != nil {
+		return err
+	}
 	return nil
 }
 
