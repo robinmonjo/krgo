@@ -1,0 +1,14 @@
+author: robinmonjo@gmail.com
+description: >
+  Command line tool to pull images from the docker hub, without docker installed
+
+filesets:
+  includes:
+    - README.md
+  excludes:
+    - \.git
+  depth: 3
+
+settings:
+  build: |
+    sh vendor.sh && export GOPATH=$GOPATH:`pwd`/vendor && cd dlrootfs && go install -v
