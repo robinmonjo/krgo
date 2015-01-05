@@ -1,7 +1,11 @@
 package dlrootfs
 
 import (
+	"bufio"
+	"os"
 	"strings"
+
+	"github.com/docker/docker/pkg/archive"
 )
 
 func truncateID(id string) string {
@@ -33,4 +37,14 @@ func ParseImageNameTag(imageNameTag string) (imageName string, imageTag string) 
 		imageName = "library/" + imageName
 	}
 	return
+}
+
+//used mostly for debugging
+func WriteArchiveToFile(archive archive.Archive, dest string) error {
+	reader := bufio.NewReader(archive)
+	tar, err := os.Create(dest)
+	defer tar.Close()
+
+	_, err = reader.WriteTo(tar)
+	return err
 }

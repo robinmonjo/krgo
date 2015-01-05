@@ -14,6 +14,7 @@ import (
 
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/tarsum"
 	"github.com/docker/docker/registry"
 	"github.com/docker/docker/utils"
 )
@@ -219,7 +220,38 @@ func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
 func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageTag, rootfs string) error {
 
 	//Load image data
-	image, err := image.LoadImage(rootfs)
+	image, err := image.LoadImage(rootfs) //reading json file in rootfs
+	if err != nil {
+		return err
+	}
+
+	layerTarSum, err := tarsum.NewTarSum(layerData, true, tarsum.VersionDev)
+	if err != nil {
+		return err
+	}
+
+	image.Checksum = layerTarSum.Sum(nil)
+
+	layerDataToSend, err := archive.NewTempArchive(layerData, "")
+	if err != nil {
+		return err
+	}
+
+	image.Size = layerDataToSend.Size
+	if err := image.SaveSize(rootfs); err != nil {
+		return err
+	}
+
+	fmt.Println("Computed checksum : ", image.Checksum, "and size ", image.Size)
+
+	f, err := os.OpenFile(path.Join(rootfs, "json"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0600))
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	err = json.NewEncoder(f).Encode(image)
 	if err != nil {
 		return err
 	}
@@ -241,19 +273,18 @@ func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageT
 		return err
 	}
 
-	_, err = s.PushImageJSONIndex(imageName, []*registry.ImgData{imgData}, true, repoData.Endpoints)
-	if err != nil {
-		return err
-	}
+	/*if err := s.LookupRemoteImage(image.ID, repoData.Endpoints[0], repoData.Tokens); err != nil {
+		fmt.Printf("Lookup err = ", err)
+	}*/
 
 	// Send the json
 	if err := s.PushImageJSONRegistry(imgData, jsonRaw, repoData.Endpoints[0], repoData.Tokens); err != nil {
 		return err
 	}
 
-	fmt.Printf("JSON registry\n")
+	fmt.Printf("JSON registry: %v\n", repoData.Endpoints[0])
 	//fmt.Printf("rendered layer for %s of [%d] size", imgData.ID, layerData.Size)
-	checksum, checksumPayload, err := s.PushImageLayerRegistry(imgData.ID, layerData, repoData.Endpoints[0], repoData.Tokens, jsonRaw)
+	checksum, checksumPayload, err := s.PushImageLayerRegistry(imgData.ID, layerDataToSend, repoData.Endpoints[0], repoData.Tokens, jsonRaw)
 	if err != nil {
 		return err
 	}
@@ -266,6 +297,16 @@ func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageT
 	if err := s.PushImageChecksumRegistry(imgData, repoData.Endpoints[0], repoData.Tokens); err != nil {
 		return err
 	}
+
+	if err := s.PushRegistryTag(imageName, imgData.ID, "latest", repoData.Endpoints[0], repoData.Tokens); err != nil {
+		return err
+	}
+
+	_, err = s.PushImageJSONIndex(imageName, []*registry.ImgData{imgData}, true, repoData.Endpoints)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("ALL GOOD BITCHES")
 	return nil
 }
 
@@ -273,12 +314,3 @@ func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageT
 //PushImageLayerRegistry
 //PushImageChecksumRegistry ??
 //func (s *TagStore) pushRepository(r *registry.Sessi when multiple images
-
-func WriteArchiveToFile(archive archive.Archive, dest string) error {
-	reader := bufio.NewReader(archive)
-	tar, err := os.Create(dest)
-	defer tar.Close()
-
-	_, err = reader.WriteTo(tar)
-	return err
-}

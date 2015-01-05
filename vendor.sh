@@ -45,4 +45,6 @@ clone git github.com/gorilla/context 14f550f51a
 clone git github.com/Sirupsen/logrus v0.6.0
 clone git github.com/docker/libtrust 230dfd18c232
 
+echo "[WARNING] Modify docker source code so docker version get sent to the registry in httpfactory.go:HTTPRequestFactory"
+
 echo "don't forget to add vendor folder to your GOPATH (export GOPATH=\$GOPATH:\`pwd\`/vendor)"

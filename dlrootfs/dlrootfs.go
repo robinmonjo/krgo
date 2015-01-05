@@ -130,9 +130,4 @@ func pushCmd(args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	/*
-		err = dlrootfs.WriteArchiveToFile(changes, "./changes.tar")
-		if err != nil {
-			log.Fatal(err)
-		}*/
 }
