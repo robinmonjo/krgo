@@ -268,16 +268,17 @@ func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageT
 		return err
 	}
 
-	_print("New layer pushed successfully\n")
-
 	//commit the changes in a new branch
 	gitRepo, _ := NewGitRepo(rootfs)
-	if _, err = gitRepo.CheckoutB("dlrootfs_" + imgData.ID); err != nil {
+	br := "dlrootfs_" + imgData.ID
+	if _, err = gitRepo.CheckoutB(br); err != nil {
 		return fmt.Errorf("failed to checkout %v", err)
 	}
 	if _, err = gitRepo.AddAllAndCommit(".", comment); err != nil {
 		return fmt.Errorf("failed to locally commit pushed changes %v", err)
 	}
+
+	_print("Uploaded layer is in the %v branch\n", br)
 
 	return nil
 }

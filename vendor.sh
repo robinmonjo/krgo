@@ -39,12 +39,12 @@ clone() {
 	echo "done"
 }
 
-clone git github.com/docker/docker v1.4.0
+clone git github.com/docker/docker v1.4.1
 clone git github.com/gorilla/mux 136d54f81f
 clone git github.com/gorilla/context 14f550f51a
 clone git github.com/Sirupsen/logrus v0.6.0
 clone git github.com/docker/libtrust 230dfd18c232
 
-echo "[WARNING] Modify docker source code so docker version get sent to the registry in httpfactory.go:HTTPRequestFactory"
+echo "[WARNING] Modify docker source code so docker version get sent to the registry in registry:httpfactory.go:HTTPRequestFactory"
 
 echo "don't forget to add vendor folder to your GOPATH (export GOPATH=\$GOPATH:\`pwd\`/vendor)"
