@@ -18,8 +18,7 @@ var (
 	gitLayering *bool   = pullFlagSet.Bool("g", false, "use git layering")
 
 	pushFlagSet         = flag.NewFlagSet("push", flag.ExitOnError)
-	baseBranch  *string = pushFlagSet.String("br1", "", "base branch")
-	newBranch   *string = pushFlagSet.String("br2", "", "new branch")
+	message     *string = pushFlagSet.String("m", "dlrootfs push", "commit message")
 	rootfs      *string = pushFlagSet.String("d", "./rootfs", "rootfs path")
 	creds       *string = pushFlagSet.String("u", "", "docker hub credentials: <username>:<password>")
 )
@@ -54,6 +53,7 @@ func main() {
 
 	cmd := os.Args[1]
 	subArgs := os.Args[2:]
+	dlrootfs.PrintOutput = true
 
 	switch cmd {
 	case "pull":
@@ -90,7 +90,7 @@ func pullCmd(args []string) {
 		log.Fatal(err)
 	}
 
-	err = session.DownloadFlattenedImage(imageName, imageTag, *rootfsDest, *gitLayering, true)
+	err = session.DownloadFlattenedImage(imageName, imageTag, *rootfsDest, *gitLayering)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -114,19 +114,19 @@ func pushCmd(args []string) {
 	imageName, imageTag := dlrootfs.ParseImageNameTag(imageNameTag)
 	userName, password := dlrootfs.ParseCredentials(*creds)
 
-	fmt.Printf("PUSH Opening a session for %v ...\n", imageName)
+	fmt.Printf("Opening a session for %v ...\n", imageName)
 	session, err := dlrootfs.NewHubSession(imageName, userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Printf("Extracting changes\n")
-	changes, err := dlrootfs.ExportChanges(*baseBranch, *newBranch, *rootfs)
+	changes, err := dlrootfs.ExportChanges(*rootfs)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = session.PushImageLayer(changes, imageName, imageTag, *rootfs)
+	err = session.PushImageLayer(changes, imageName, imageTag, *message, *rootfs)
 	if err != nil {
 		log.Fatal(err)
 	}

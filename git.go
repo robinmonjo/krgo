@@ -52,8 +52,17 @@ func (r *GitRepo) CheckoutB(branch string) ([]byte, error) {
 	return r.execInWorkTree("checkout", "-b", branch)
 }
 
-func (r *GitRepo) Add(file string) ([]byte, error) {
-	return r.execInWorkTree("add", file)
+func (r *GitRepo) AddAllAndCommit(file, message string) ([]byte, error) {
+	bAdd, err := r.AddAll(file)
+	if err != nil {
+		return bAdd, err
+	}
+	bCi, err := r.Commit(message)
+	return append(bAdd, bCi...), err
+}
+
+func (r *GitRepo) AddAll(file string) ([]byte, error) {
+	return r.execInWorkTree("add", file, "--all")
 }
 
 func (r *GitRepo) Commit(message string) ([]byte, error) {
@@ -64,8 +73,8 @@ func (r *GitRepo) Branch() ([]byte, error) {
 	return r.execInWorkTree("branch")
 }
 
-func (r *GitRepo) DiffStatusName(br1, br2 string) ([]byte, error) {
-	return r.execInWorkTree("diff", br1+".."+br2, "--name-status")
+func (r *GitRepo) DiffCachedNameStatus() ([]byte, error) {
+	return r.execInWorkTree("diff", "--cached", "--name-status")
 }
 
 func (r *GitRepo) execInWorkTree(args ...string) ([]byte, error) {

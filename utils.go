@@ -2,19 +2,12 @@ package dlrootfs
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/docker/docker/pkg/archive"
 )
-
-func truncateID(id string) string {
-	shortLen := 12
-	if len(id) < shortLen {
-		shortLen = len(id)
-	}
-	return id[:shortLen]
-}
 
 func ParseCredentials(credentials string) (string, string) {
 	credentialsSplit := strings.SplitN(credentials, ":", 2)
@@ -37,6 +30,12 @@ func ParseImageNameTag(imageNameTag string) (imageName string, imageTag string) 
 		imageName = "library/" + imageName
 	}
 	return
+}
+
+func _print(s string, args ...interface{}) {
+	if PrintOutput {
+		fmt.Printf(s, args...)
+	}
 }
 
 //used mostly for debugging

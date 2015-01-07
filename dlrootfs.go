@@ -8,9 +8,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/archive"
@@ -21,9 +21,10 @@ import (
 
 const MAX_DL_CONCURRENCY int = 7
 
+var PrintOutput bool
+
 type HubSession struct {
 	registry.Session
-	RepoData *registry.RepositoryData
 }
 
 func NewHubSession(imageName, userName, password string) (*HubSession, error) {
@@ -49,30 +50,27 @@ func NewHubSession(imageName, userName, password string) (*HubSession, error) {
 		return nil, fmt.Errorf("failed to create docker hub session %v", err)
 	}
 
-	repoData, err := session.GetRepositoryData(imageName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get repository data %v", err)
-	}
-
-	return &HubSession{*session, repoData}, nil
+	return &HubSession{*session}, nil
 }
 
-func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest string, gitLayering, printProgress bool) error {
+func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest string, gitLayering bool) error {
+	repoData, err := s.GetRepositoryData(imageName)
+	if err != nil {
+		return fmt.Errorf("failed to get repository data %v", err)
+	}
 
-	tagsList, err := s.GetRemoteTags(s.RepoData.Endpoints, imageName, s.RepoData.Tokens)
+	tagsList, err := s.GetRemoteTags(repoData.Endpoints, imageName, repoData.Tokens)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve tag list %v", err)
 	}
 
 	imageId := tagsList[imageTag]
-	if printProgress {
-		fmt.Printf("Image ID: %v\n", imageId)
-	}
+	_print("Image ID: %v\n", imageId)
 
 	//Download image history
 	var imageHistory []string
-	for _, ep := range s.RepoData.Endpoints {
-		imageHistory, err = s.GetRemoteHistory(imageId, ep, s.RepoData.Tokens)
+	for _, ep := range repoData.Endpoints {
+		imageHistory, err = s.GetRemoteHistory(imageId, ep, repoData.Tokens)
 		if err == nil {
 			break
 		}
@@ -94,27 +92,16 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 	}
 
 	queue := NewQueue(MAX_DL_CONCURRENCY)
-
-	if printProgress {
-		fmt.Printf("Pulling %d layers:\n", len(imageHistory))
-	}
+	_print("Pulling %d layers:\n", len(imageHistory))
 
 	for i := len(imageHistory) - 1; i >= 0; i-- {
 		layerId := imageHistory[i]
-		job := NewPullingJob(s, layerId)
+		job := NewPullingJob(s, repoData, layerId)
 		queue.Enqueue(job)
 	}
 	<-queue.DoneChan
 
-	if printProgress {
-		fmt.Printf("Downloading layers:\n")
-	}
-
-	//no lchown if not on linux
-	tarOptions := &archive.TarOptions{NoLchown: false}
-	if runtime.GOOS != "linux" {
-		tarOptions.NoLchown = true
-	}
+	_print("Downloading layers:\n")
 
 	cpt := 0
 
@@ -123,9 +110,7 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 		//for each layers
 		layerId := imageHistory[i]
 
-		if printProgress {
-			fmt.Printf("\t%v ... ", utils.TruncateID(layerId))
-		}
+		_print("\t%v ... ", utils.TruncateID(layerId))
 
 		if gitLayering {
 			//create a git branch
@@ -136,7 +121,7 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 
 		//download and untar the layer
 		job := queue.CompletedJobWithID(layerId).(*PullingJob)
-		err = archive.Untar(job.LayerData, rootfsDest, tarOptions)
+		err = archive.ApplyLayer(rootfsDest, job.LayerData)
 		job.LayerData.Close()
 		if err != nil {
 			return err
@@ -156,37 +141,31 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 		}
 
 		if gitLayering {
-			_, err = gitRepo.Add(".")
+			_, err = gitRepo.AddAllAndCommit(".", "adding layer "+strconv.Itoa(cpt))
 			if err != nil {
 				return fmt.Errorf("failed to add changes %v", err)
-			}
-			_, err = gitRepo.Commit("adding layer " + strconv.Itoa(cpt))
-			if err != nil {
-				return fmt.Errorf("failed to commit changes %v", err)
 			}
 		}
 
 		cpt++
 
-		if printProgress {
-			fmt.Printf("done\n")
-		}
+		_print("done\n")
 	}
 	return nil
 }
 
-// Pushing specific functions
-func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
-
+//Expected changes not to be commited. Changes will be exported from the current branch
+func ExportChanges(rootfs string) (archive.Archive, error) {
 	if !IsGitRepo(rootfs) {
 		return nil, fmt.Errorf("%v doesn't appear to be a git repository", rootfs)
 	}
 
-	gitRepo, err := NewGitRepo(rootfs)
+	gitRepo, _ := NewGitRepo(rootfs)
+	gitRepo.AddAll(".")
 
-	diff, err := gitRepo.DiffStatusName(br1, br2)
+	diff, err := gitRepo.DiffCachedNameStatus()
 	if err != nil {
-		return nil, fmt.Errorf("failed to diff %v and %v: %v, %v", br1, br2, err, string(diff))
+		return nil, fmt.Errorf("failed to diff: %v, %v", err, string(diff))
 	}
 
 	var changes []archive.Change
@@ -214,10 +193,16 @@ func ExportChanges(br1, br2, rootfs string) (archive.Archive, error) {
 			return nil, err
 		}
 	}
+	if len(changes) == 0 {
+		return nil, fmt.Errorf("no changes to extract")
+	}
 	return archive.ExportChanges(rootfs, changes)
 }
 
-func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageTag, rootfs string) error {
+func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageTag, comment, rootfs string) error {
+	if !IsGitRepo(rootfs) {
+		return fmt.Errorf("%v doesn't appear to be a git repository", rootfs)
+	}
 
 	//Load image data
 	image, err := image.LoadImage(rootfs) //reading json file in rootfs
@@ -230,75 +215,51 @@ func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageT
 		return err
 	}
 
+	//fill new infos
 	image.Checksum = layerTarSum.Sum(nil)
+	image.Parent = image.ID
+	image.ID = utils.GenerateRandomID()
+	image.Created = time.Now()
+	image.Comment = comment
 
-	layerDataToSend, err := archive.NewTempArchive(layerData, "")
+	layer, err := archive.NewTempArchive(layerData, "")
 	if err != nil {
 		return err
 	}
+	image.Size = layer.Size
 
-	image.Size = layerDataToSend.Size
 	if err := image.SaveSize(rootfs); err != nil {
 		return err
 	}
 
-	fmt.Println("Computed checksum : ", image.Checksum, "and size ", image.Size)
+	_print("Image ID: %v\nParent: %v\nChecksum: %v\nLayer size: %v\n", image.ID, image.Parent, image.Checksum, image.Size)
 
-	f, err := os.OpenFile(path.Join(rootfs, "json"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0600))
+	jsonRaw, err := json.Marshal(image)
 	if err != nil {
 		return err
 	}
 
-	defer f.Close()
-
-	err = json.NewEncoder(f).Encode(image)
+	err = ioutil.WriteFile(path.Join(rootfs, "json"), jsonRaw, 0600)
 	if err != nil {
 		return err
 	}
 
-	jsonRaw, err := ioutil.ReadFile(path.Join(rootfs, "json"))
-	if err != nil {
-		return err
-	}
+	//Prepare payload
+	imgData := &registry.ImgData{ID: image.ID, Tag: imageTag}
 
-	//4: prepare payload
-	imgData := &registry.ImgData{ID: image.ID, Tag: ""}
-
-	fmt.Println("Image data = ", imgData)
-
-	// Register all the images in a repository with the registry
-	// If an image is not in this list it will not be associated with the repository
 	repoData, err := s.PushImageJSONIndex(imageName, []*registry.ImgData{imgData}, false, nil)
 	if err != nil {
 		return err
 	}
 
-	/*if err := s.LookupRemoteImage(image.ID, repoData.Endpoints[0], repoData.Tokens); err != nil {
-		fmt.Printf("Lookup err = ", err)
-	}*/
-
 	// Send the json
-	if err := s.PushImageJSONRegistry(imgData, jsonRaw, repoData.Endpoints[0], repoData.Tokens); err != nil {
-		return err
+	for _, ep := range repoData.Endpoints {
+		if err = s.pushLayer(imageName, layer, imgData, jsonRaw, ep, repoData.Tokens); err == nil {
+			break
+		}
 	}
 
-	fmt.Printf("JSON registry: %v\n", repoData.Endpoints[0])
-	//fmt.Printf("rendered layer for %s of [%d] size", imgData.ID, layerData.Size)
-	checksum, checksumPayload, err := s.PushImageLayerRegistry(imgData.ID, layerDataToSend, repoData.Endpoints[0], repoData.Tokens, jsonRaw)
 	if err != nil {
-		return err
-	}
-
-	fmt.Printf("Layer pushed\n")
-
-	imgData.Checksum = checksum
-	imgData.ChecksumPayload = checksumPayload
-	// Send the checksum
-	if err := s.PushImageChecksumRegistry(imgData, repoData.Endpoints[0], repoData.Tokens); err != nil {
-		return err
-	}
-
-	if err := s.PushRegistryTag(imageName, imgData.ID, "latest", repoData.Endpoints[0], repoData.Tokens); err != nil {
 		return err
 	}
 
@@ -306,11 +267,41 @@ func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageT
 	if err != nil {
 		return err
 	}
-	fmt.Printf("ALL GOOD BITCHES")
+
+	_print("New layer pushed successfully\n")
+
+	//commit the changes in a new branch
+	gitRepo, _ := NewGitRepo(rootfs)
+	if _, err = gitRepo.CheckoutB("dlrootfs_" + imgData.ID); err != nil {
+		return fmt.Errorf("failed to checkout %v", err)
+	}
+	if _, err = gitRepo.AddAllAndCommit(".", comment); err != nil {
+		return fmt.Errorf("failed to locally commit pushed changes %v", err)
+	}
+
 	return nil
 }
 
-//PushImageJSONRegistry
-//PushImageLayerRegistry
-//PushImageChecksumRegistry ??
-//func (s *TagStore) pushRepository(r *registry.Sessi when multiple images
+func (s *HubSession) pushLayer(imageName string, layer archive.Archive, imgData *registry.ImgData, jsonRaw []byte, ep string, tokens []string) error {
+	if err := s.PushImageJSONRegistry(imgData, jsonRaw, ep, tokens); err != nil {
+		return err
+	}
+
+	checksum, checksumPayload, err := s.PushImageLayerRegistry(imgData.ID, layer, ep, tokens, jsonRaw)
+	if err != nil {
+		return err
+	}
+
+	imgData.Checksum = checksum
+	imgData.ChecksumPayload = checksumPayload
+
+	// Send the checksum
+	if err := s.PushImageChecksumRegistry(imgData, ep, tokens); err != nil {
+		return err
+	}
+
+	if err := s.PushRegistryTag(imageName, imgData.ID, imgData.Tag, ep, tokens); err != nil {
+		return err
+	}
+	return nil
+}
