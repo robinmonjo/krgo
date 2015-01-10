@@ -32,17 +32,28 @@ func NewGitRepo(path string) (*GitRepo, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = r.execInWorkTree("config", "user.email", "mail@mail.com")
-	if err != nil {
-		return nil, err
+
+	email, _ := r.userConfig("email")
+	if len(email) == 0 {
+		_, err = r.execInWorkTree("config", "user.email", "fake@dlrootfs.com")
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	_, err = r.execInWorkTree("config", "user.name", "dlrootfs")
-	if err != nil {
-		return nil, err
+	name, _ := r.userConfig("name")
+	if len(name) == 0 {
+		_, err = r.execInWorkTree("config", "user.name", "dlrootfs")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return r, nil
+}
+
+func (r *GitRepo) userConfig(key string) ([]byte, error) {
+	return r.exec("config", "user."+key)
 }
 
 func (r *GitRepo) Checkout(branch string) ([]byte, error) {
