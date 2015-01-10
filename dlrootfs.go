@@ -12,12 +12,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/dockerversion"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/tarsum"
 	"github.com/docker/docker/registry"
 	"github.com/docker/docker/utils"
 )
+
+func init() {
+	dockerversion.VERSION = "1.4.1" //needed otherwise error 500 on push
+}
 
 const MAX_DL_CONCURRENCY int = 7
 
@@ -270,7 +275,8 @@ func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageT
 
 	//commit the changes in a new branch
 	gitRepo, _ := NewGitRepo(rootfs)
-	br := "dlrootfs_" + imgData.ID
+	brNumber, _ := gitRepo.CountBranches()
+	br := "layer" + strconv.Itoa(brNumber-1) + "_" + image.ID
 	if _, err = gitRepo.CheckoutB(br); err != nil {
 		return fmt.Errorf("failed to checkout %v", err)
 	}

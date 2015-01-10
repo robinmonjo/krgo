@@ -1,6 +1,7 @@
 package dlrootfs
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 )
@@ -71,6 +72,14 @@ func (r *GitRepo) Commit(message string) ([]byte, error) {
 
 func (r *GitRepo) Branch() ([]byte, error) {
 	return r.execInWorkTree("branch")
+}
+
+func (r *GitRepo) CountBranches() (int, error) {
+	b, err := r.Branch()
+	if err != nil {
+		return -1, err
+	}
+	return len(bytes.Split(b, []byte("\n"))), nil
 }
 
 func (r *GitRepo) DiffCachedNameStatus() ([]byte, error) {
