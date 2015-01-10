@@ -92,9 +92,9 @@ func cleanupPull() {
 }
 
 func pullImage(imageName, credentials string, gitLayering bool, t *testing.T) {
-	args := []string{"pull", imageName, "-d", rootfs}
+	args := []string{"-r", rootfs, "pull", imageName}
 	if credentials != "" {
-		args = append(args, []string{"-u", credentials}...)
+		args = append([]string{"-u", credentials}, args...)
 	}
 	if gitLayering {
 		args = append(args, "-g")

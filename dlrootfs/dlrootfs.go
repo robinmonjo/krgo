@@ -46,7 +46,6 @@ var pushCmd = cli.Command{
 func main() {
 
 	app := cli.NewApp()
-	app.Name = "dlrootfs"
 	app.Version = VERSION
 	app.Usage = "docker hub without docker"
 	app.Author = "Robin Monjo"
@@ -60,7 +59,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "r, rootfs",
-			Usage: "path where to store the rootfs (pull) or where to find the rootfs (push)",
+			Usage: "path where to store the rootfs (pull) or where to find the rootfs (push) (default: ./rootfs)",
 			Value: "./rootfs",
 		},
 	}
@@ -71,12 +70,7 @@ func main() {
 }
 
 func pull(c *cli.Context) {
-	if len(c.Args()) == 0 {
-		cli.ShowSubcommandHelp(c)
-		return
-	}
-
-	imageName, imageTag := dlrootfs.ParseImageNameTag(c.Args()[0])
+	imageName, imageTag := dlrootfs.ParseImageNameTag(c.Args().First())
 	userName, password := dlrootfs.ParseCredentials(c.GlobalString("user"))
 
 	fmt.Printf("Opening a session for %v ...\n", imageName)
@@ -94,12 +88,7 @@ func pull(c *cli.Context) {
 }
 
 func push(c *cli.Context) {
-	if len(c.Args()) == 0 {
-		cli.ShowSubcommandHelp(c)
-		return
-	}
-
-	imageName, imageTag := dlrootfs.ParseImageNameTag(c.Args()[0])
+	imageName, imageTag := dlrootfs.ParseImageNameTag(c.Args().First())
 	userName, password := dlrootfs.ParseCredentials(c.GlobalString("user"))
 
 	fmt.Printf("Opening a session for %v ...\n", imageName)
