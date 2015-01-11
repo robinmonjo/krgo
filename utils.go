@@ -32,6 +32,15 @@ func ParseImageNameTag(imageNameTag string) (imageName string, imageTag string) 
 	return
 }
 
+func indexOf(slice []string, e string) int {
+	for i, v := range slice {
+		if v == e {
+			return i
+		}
+	}
+	return -1
+}
+
 func _print(s string, args ...interface{}) {
 	if PrintOutput {
 		fmt.Printf(s, args...)

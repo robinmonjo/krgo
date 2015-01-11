@@ -58,7 +58,15 @@ func NewHubSession(imageName, userName, password string) (*HubSession, error) {
 	return &HubSession{*session}, nil
 }
 
-func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest string, gitLayering bool) error {
+func (s *HubSession) PullImage(imageName, imageTag, rootfsDest string) error {
+	return s.downloadImage(imageName, imageTag, rootfsDest, false)
+}
+
+func (s *HubSession) PullRepository(imageName, imageTag, rootfsDest string) error {
+	return s.downloadImage(imageName, imageTag, rootfsDest, true)
+}
+
+func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLayering bool) error {
 	repoData, err := s.GetRepositoryData(imageName)
 	if err != nil {
 		return fmt.Errorf("failed to get repository data %v", err)
@@ -89,9 +97,9 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 		return fmt.Errorf("failed to create directory %v: %v", rootfsDest, err)
 	}
 
-	var gitRepo *GitRepo
+	var gitRepo *gitRepo
 	if gitLayering {
-		if gitRepo, err = NewGitRepo(rootfsDest); err != nil {
+		if gitRepo, err = newGitRepo(rootfsDest); err != nil {
 			return fmt.Errorf("failed to create git repository %v", err)
 		}
 	}
@@ -119,7 +127,7 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 
 		if gitLayering {
 			//create a git branch
-			if _, err = gitRepo.CheckoutB("layer" + strconv.Itoa(cpt) + "_" + layerId); err != nil {
+			if _, err = gitRepo.checkoutB("layer" + strconv.Itoa(cpt) + "_" + layerId); err != nil {
 				return fmt.Errorf("failed to checkout %v", err)
 			}
 		}
@@ -146,7 +154,7 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 		}
 
 		if gitLayering {
-			_, err = gitRepo.AddAllAndCommit(".", "adding layer "+strconv.Itoa(cpt))
+			_, err = gitRepo.addAllAndCommit(".", "adding layer "+strconv.Itoa(cpt))
 			if err != nil {
 				return fmt.Errorf("failed to add changes %v", err)
 			}
@@ -161,14 +169,14 @@ func (s *HubSession) DownloadFlattenedImage(imageName, imageTag, rootfsDest stri
 
 //Expected changes not to be commited. Changes will be exported from the current branch
 func ExportChanges(rootfs string) (archive.Archive, error) {
-	if !IsGitRepo(rootfs) {
+	if !isGitRepo(rootfs) {
 		return nil, fmt.Errorf("%v doesn't appear to be a git repository", rootfs)
 	}
 
-	gitRepo, _ := NewGitRepo(rootfs)
-	gitRepo.AddAll(".")
+	gitRepo, _ := newGitRepo(rootfs)
+	gitRepo.addAll(".")
 
-	diff, err := gitRepo.DiffCachedNameStatus()
+	diff, err := gitRepo.diffCachedNameStatus()
 	if err != nil {
 		return nil, fmt.Errorf("failed to diff: %v, %v", err, string(diff))
 	}
@@ -204,10 +212,51 @@ func ExportChanges(rootfs string) (archive.Archive, error) {
 	return archive.ExportChanges(rootfs, changes)
 }
 
-func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageTag, comment, rootfs string) error {
-	if !IsGitRepo(rootfs) {
+func (s *HubSession) PushRepository(imageName, imageTag, rootfs string) error {
+	if !isGitRepo(rootfs) {
 		return fmt.Errorf("%v doesn't appear to be a git repository", rootfs)
 	}
+	gitRepo, _ := newGitRepo(rootfs)
+
+	imageIds, _ := gitRepo.imageIds()
+
+	_print("Pushing %d layers:\n", len(imageIds))
+
+	//Push image index
+	var imageIndex []*registry.ImgData
+	for _, id := range imageIds {
+		imageIndex = append(imageIndex, &registry.ImgData{ID: id, Tag: imageTag})
+	}
+	repoData, err := s.PushImageJSONIndex(imageName, imageIndex, false, nil)
+	if err != nil {
+		return err
+	}
+
+	//make sure existing branches are pushed
+	branches, _ := gitRepo.branch()
+	for _, br := range branches {
+		//checkout on first branch and extract change
+		//checkout on second branch on push change set
+	}
+
+	//Finalize push
+	_, err = s.PushImageJSONIndex(imageName, imageIndex, true, repoData.Endpoints)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageTag, comment, rootfs string) error {
+	if !isGitRepo(rootfs) {
+		return fmt.Errorf("%v doesn't appear to be a git repository", rootfs)
+	}
+	gitRepo, _ := newGitRepo(rootfs)
+
+	//First we need to push all images
+
+	//For each branches
 
 	//Load image data
 	image, err := image.LoadImage(rootfs) //reading json file in rootfs
@@ -259,7 +308,7 @@ func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageT
 
 	// Send the json
 	for _, ep := range repoData.Endpoints {
-		if err = s.pushLayer(imageName, layer, imgData, jsonRaw, ep, repoData.Tokens); err == nil {
+		if err = s.pushLayerData(imageName, layer, imgData, jsonRaw, ep, repoData.Tokens); err == nil {
 			break
 		}
 	}
@@ -274,13 +323,12 @@ func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageT
 	}
 
 	//commit the changes in a new branch
-	gitRepo, _ := NewGitRepo(rootfs)
-	brNumber, _ := gitRepo.CountBranches()
-	br := "layer" + strconv.Itoa(brNumber-1) + "_" + image.ID
-	if _, err = gitRepo.CheckoutB(br); err != nil {
+	brNumber, _ := gitRepo.countBranches()
+	br := "layer" + strconv.Itoa(brNumber) + "_" + image.ID
+	if _, err = gitRepo.checkoutB(br); err != nil {
 		return fmt.Errorf("failed to checkout %v", err)
 	}
-	if _, err = gitRepo.AddAllAndCommit(".", comment); err != nil {
+	if _, err = gitRepo.addAllAndCommit(".", comment); err != nil {
 		return fmt.Errorf("failed to locally commit pushed changes %v", err)
 	}
 
@@ -289,7 +337,7 @@ func (s *HubSession) PushImageLayer(layerData archive.Archive, imageName, imageT
 	return nil
 }
 
-func (s *HubSession) pushLayer(imageName string, layer archive.Archive, imgData *registry.ImgData, jsonRaw []byte, ep string, tokens []string) error {
+func (s *HubSession) pushLayerData(imageName string, layer archive.Archive, imgData *registry.ImgData, jsonRaw []byte, ep string, tokens []string) error {
 	if err := s.PushImageJSONRegistry(imgData, jsonRaw, ep, tokens); err != nil {
 		return err
 	}

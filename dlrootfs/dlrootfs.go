@@ -79,7 +79,11 @@ func pull(c *cli.Context) {
 		log.Fatal(err)
 	}
 
-	err = session.DownloadFlattenedImage(imageName, imageTag, c.GlobalString("rootfs"), c.Bool("git-layering"))
+	if c.Bool("git-layering") {
+		err = session.PullRepository(imageName, imageTag, c.GlobalString("rootfs"))
+	} else {
+		err = session.PullImage(imageName, imageTag, c.GlobalString("rootfs"))
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,6 +100,10 @@ func push(c *cli.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	session.PushRepository(c.GlobalString("rootfs"))
+
+	return
 
 	fmt.Printf("Extracting changes\n")
 	changes, err := dlrootfs.ExportChanges(c.GlobalString("rootfs"))
