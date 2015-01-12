@@ -14,6 +14,7 @@ const VERSION string = "1.4.0"
 var Commands = []cli.Command{
 	pullCmd,
 	pushCmd,
+	commitCmd,
 }
 
 var pullCmd = cli.Command{
@@ -31,9 +32,16 @@ var pullCmd = cli.Command{
 
 var pushCmd = cli.Command{
 	Name:        "push",
-	Usage:       "push <image_name>:[<image_tag>] [-m <comment>]",
+	Usage:       "push <image_name>:[<image_tag>]",
 	Description: "push an image on the dockerhub. Image name format is repository/name:tag",
 	Action:      push,
+}
+
+var commitCmd = cli.Command{
+	Name:        "commit",
+	Usage:       "commit [-m <commit message>]",
+	Description: "commit the changes to prepare a push",
+	Action:      commit,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "m, message",
@@ -91,6 +99,13 @@ func pull(c *cli.Context) {
 	fmt.Printf("\nRootfs of %v:%v in %v\n", imageName, imageTag, c.GlobalString("rootfs"))
 }
 
+func commit(c *cli.Context) {
+	err := dlrootfs.CommitChanges(c.GlobalString("rootfs"), c.String("message"))
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func push(c *cli.Context) {
 	imageName, imageTag := dlrootfs.ParseImageNameTag(c.Args().First())
 	userName, password := dlrootfs.ParseCredentials(c.GlobalString("user"))
@@ -101,18 +116,9 @@ func push(c *cli.Context) {
 		log.Fatal(err)
 	}
 
-	session.PushRepository(c.GlobalString("rootfs"))
-
-	return
-
-	fmt.Printf("Extracting changes\n")
-	changes, err := dlrootfs.ExportChanges(c.GlobalString("rootfs"))
+	err = session.PushRepository(imageName, imageTag, c.GlobalString("rootfs"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = session.PushImageLayer(changes, imageName, imageTag, c.String("message"), c.GlobalString("rootfs"))
-	if err != nil {
-		log.Fatal(err)
-	}
 }

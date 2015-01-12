@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"strings"
 	"testing"
 
 	"github.com/rmonjo/dlrootfs"
@@ -59,7 +58,7 @@ func Test_pullImageWithGit(t *testing.T) {
 	pullImage(gitImage, "", true, t)
 
 	gitRepo, _ := dlrootfs.NewGitRepo(rootfs)
-	out, _ := gitRepo.Branch()
+	branches, _ := gitRepo.Branch()
 
 	fmt.Printf("Checking git layering ... ")
 
@@ -68,19 +67,12 @@ func Test_pullImageWithGit(t *testing.T) {
 		"layer1_3b363fd9d7dab4db9591058a3f43e806f6fa6f7e2744b63b2df4b84eadb0685a",
 		"layer2_607c5d1cca71dd3b6c04327c3903363079b72ab3e5e4289d74fb00a9ac7ec2aa",
 		"layer3_f62feddc05dc67da9b725361f97d7ae72a32e355ce1585f9a60d090289120f73",
-		"* layer4_8eaa4ff06b53ff7730c4d7a7e21b4426a4b46dee064ca2d5d90d757dc7ea040a",
+		"layer4_8eaa4ff06b53ff7730c4d7a7e21b4426a4b46dee064ca2d5d90d757dc7ea040a",
 	}
 
-	branches := strings.Split(string(out), "\n")
-
 	for i, branch := range branches {
-		trimmedBranch := strings.Trim(branch, " \n")
-		if trimmedBranch == "" {
-			continue
-		}
-		expectedBranch := expectedBranches[i]
-		if trimmedBranch != expectedBranch {
-			t.Fatal("Expected branch", expectedBranch, " got ", trimmedBranch)
+		if branch != expectedBranches[i] {
+			t.Fatal("Expected branch", expectedBranches[i], " got ", branch)
 		}
 	}
 	fmt.Printf("OK\n")

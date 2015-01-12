@@ -1,14 +1,12 @@
 package dlrootfs
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/docker/docker/pkg/archive"
 )
 
+//credentials format: <username>:<password>
 func ParseCredentials(credentials string) (string, string) {
 	credentialsSplit := strings.SplitN(credentials, ":", 2)
 	if len(credentialsSplit) != 2 {
@@ -17,7 +15,8 @@ func ParseCredentials(credentials string) (string, string) {
 	return credentialsSplit[0], credentialsSplit[1]
 }
 
-func ParseImageNameTag(imageNameTag string) (imageName string, imageTag string) {
+//image format: <repository>/<image_name>:<tag>. tag defaults to latest, repository defaults to library
+func ParseImageNameTag(imageNameTag string) (imageName, imageTag string) {
 	if strings.Contains(imageNameTag, ":") {
 		imageName = strings.SplitN(imageNameTag, ":", 2)[0]
 		imageTag = strings.SplitN(imageNameTag, ":", 2)[1]
@@ -47,12 +46,12 @@ func _print(s string, args ...interface{}) {
 	}
 }
 
-//used mostly for debugging
-func WriteArchiveToFile(archive archive.Archive, dest string) error {
-	reader := bufio.NewReader(archive)
-	tar, err := os.Create(dest)
-	defer tar.Close()
-
-	_, err = reader.WriteTo(tar)
-	return err
+//fileExists reports whether the named file or directory exists
+func fileExists(path string) bool {
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
 }
