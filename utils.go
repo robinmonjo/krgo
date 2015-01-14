@@ -1,7 +1,6 @@
-package dlrootfs
+package main
 
 import (
-	"fmt"
 	"os"
 	"strings"
 )
@@ -31,6 +30,7 @@ func ParseImageNameTag(imageNameTag string) (imageName, imageTag string) {
 	return
 }
 
+//return the index of string e in slice
 func indexOf(slice []string, e string) int {
 	for i, v := range slice {
 		if v == e {
@@ -38,12 +38,6 @@ func indexOf(slice []string, e string) int {
 		}
 	}
 	return -1
-}
-
-func _print(s string, args ...interface{}) {
-	if PrintOutput {
-		fmt.Printf(s, args...)
-	}
 }
 
 //fileExists reports whether the named file or directory exists

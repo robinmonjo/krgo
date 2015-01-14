@@ -1,4 +1,4 @@
-package dlrootfs
+package main
 
 import (
 	"log"

@@ -1,4 +1,4 @@
-package dlrootfs
+package main
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ func (s *HubSession) PushRepository(imageName, imageTag, rootfs string) error {
 		imageIds = append(imageIds, strings.Split(br, "_")[1]) //branch format layerN_imageId
 	}
 
-	_print("Repository has %d layers\n", len(imageIds))
+	fmt.Printf("Repository has %d layers\n", len(imageIds))
 
 	//Push image index
 	var imageIndex []*registry.ImgData
@@ -41,15 +41,15 @@ func (s *HubSession) PushRepository(imageName, imageTag, rootfs string) error {
 	ep := repoData.Endpoints[0]
 	//make sure existing branches are pushed
 	for i, imageId := range imageIds {
-		_print("%v ... ", imageId)
+		fmt.Printf("%v ... ", imageId)
 		if s.LookupRemoteImage(imageId, ep, repoData.Tokens) {
-			_print("already pushed\n")
+			fmt.Printf("already pushed\n")
 		} else {
 			err = s.pushImageLayer(gitRepo, branches[i], imageId, ep, repoData.Tokens)
 			if err != nil {
 				return err
 			}
-			_print("pushed :)\n")
+			fmt.Printf("pushed :)\n")
 		}
 
 		//push tag
@@ -57,8 +57,6 @@ func (s *HubSession) PushRepository(imageName, imageTag, rootfs string) error {
 			return err
 		}
 	}
-
-	//push the new uncommited changes
 
 	//Finalize push
 	_, err = s.PushImageJSONIndex(imageName, imageIndex, true, repoData.Endpoints)
@@ -86,7 +84,7 @@ func (s *HubSession) pushImageLayer(gitRepo *GitRepo, branch, imgID, ep string, 
 	// Send the json
 	if err := s.PushImageJSONRegistry(imgData, jsonRaw, ep, token); err != nil {
 		if err == registry.ErrAlreadyExists {
-			_print("Image already pushed")
+			fmt.Printf("Image already pushed")
 			return nil
 		}
 		return err

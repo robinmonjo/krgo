@@ -6,8 +6,6 @@ import (
 	"os/exec"
 	"path"
 	"testing"
-
-	"github.com/rmonjo/dlrootfs"
 )
 
 const CREDS_ENV string = "DLROOTFS_CREDS"
@@ -20,22 +18,13 @@ var (
 
 	rootfs string = "tmp_rootfs"
 
-	minimalLinuxRootDirs []string = []string{"bin", "dev", "etc", "home", "lib", "mnt", "opt", "proc", "root", "run", "sbin", "sys", "tmp", "usr", "var"}
-	dockerImageFiles     []string = []string{"json"}
+	minimalLinuxRootfs []string = []string{"bin", "dev", "etc", "home", "lib", "mnt", "opt", "proc", "root", "run", "sbin", "sys", "tmp", "usr", "var", "json"}
 )
-
-func assertErrNil(err error, t *testing.T) {
-	if err != nil {
-		t.Fatal(err)
-		cleanupPull()
-	}
-}
 
 func Test_pullImages(t *testing.T) {
 	for _, imageName := range testImages {
 		fmt.Printf("Testing %v image ... ", imageName)
-		pullImage(imageName, "", false, t)
-		cleanupPull()
+		pullImage(imageName, "", false, t, true)
 		fmt.Printf("Ok\n")
 	}
 }
@@ -47,17 +36,16 @@ func Test_pullPrivateImage(t *testing.T) {
 		return
 	}
 	fmt.Printf("Testing private %v image ... ", privateImage)
-	pullImage(privateImage, creds, true, t)
-	cleanupPull()
+	pullImage(privateImage, creds, true, t, true)
 	fmt.Printf("Ok\n")
 }
 
 func Test_pullImageWithGit(t *testing.T) {
 	fmt.Printf("Testing using git layering %v image ... ", gitImage)
+	defer os.RemoveAll(rootfs)
+	pullImage(gitImage, "", true, t, false)
 
-	pullImage(gitImage, "", true, t)
-
-	gitRepo, _ := dlrootfs.NewGitRepo(rootfs)
+	gitRepo, _ := NewGitRepo(rootfs)
 	branches, _ := gitRepo.Branch()
 
 	fmt.Printf("Checking git layering ... ")
@@ -72,18 +60,16 @@ func Test_pullImageWithGit(t *testing.T) {
 
 	for i, branch := range branches {
 		if branch != expectedBranches[i] {
-			t.Fatal("Expected branch", expectedBranches[i], " got ", branch)
+			t.Fatal("Expected branch", expectedBranches[i], "got", branch)
 		}
 	}
 	fmt.Printf("OK\n")
-	cleanupPull()
 }
 
-func cleanupPull() {
-	os.RemoveAll(rootfs)
-}
-
-func pullImage(imageName, credentials string, gitLayering bool, t *testing.T) {
+func pullImage(imageName, credentials string, gitLayering bool, t *testing.T, cleanup bool) {
+	if cleanup {
+		defer os.RemoveAll(rootfs)
+	}
 	args := []string{"-r", rootfs, "pull", imageName}
 	if credentials != "" {
 		args = append([]string{"-u", credentials}, args...)
@@ -100,29 +86,9 @@ func pullImage(imageName, credentials string, gitLayering bool, t *testing.T) {
 	assertErrNil(err, t)
 
 	fmt.Printf("Checking FS ... ")
-	for _, dir := range minimalLinuxRootDirs {
-		checkDirExists(path.Join(rootfs, dir), t)
-	}
-
-	for _, file := range dockerImageFiles {
-		checkFileExists(path.Join(rootfs, file), t)
-	}
-}
-
-func checkDirExists(dir string, t *testing.T) {
-	src, err := os.Stat(dir)
-	assertErrNil(err, t)
-
-	if !src.IsDir() {
-		t.Fatal(dir, "not a directory")
-	}
-}
-
-func checkFileExists(dir string, t *testing.T) {
-	src, err := os.Stat(dir)
-	assertErrNil(err, t)
-
-	if src.IsDir() {
-		t.Fatal(dir, "is a directory")
+	for _, file := range minimalLinuxRootfs {
+		if !fileExists(path.Join(rootfs, file)) {
+			t.Fatalf("expected file %v doesn't exists\n", file)
+		}
 	}
 }

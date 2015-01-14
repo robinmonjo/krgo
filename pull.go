@@ -1,4 +1,4 @@
-package dlrootfs
+package main
 
 import (
 	"fmt"
@@ -17,6 +17,7 @@ func (s *HubSession) PullImage(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, false)
 }
 
+//download an image putting each layer in a git branch "on top of each other"
 func (s *HubSession) PullRepository(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, true)
 }
@@ -33,7 +34,7 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 	}
 
 	imageId := tagsList[imageTag]
-	_print("Image ID: %v\n", imageId)
+	fmt.Printf("Image ID: %v\n", imageId)
 
 	//Download image history
 	var imageHistory []string
@@ -60,7 +61,7 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 	}
 
 	queue := NewQueue(MAX_DL_CONCURRENCY)
-	_print("Pulling %d layers:\n", len(imageHistory))
+	fmt.Printf("Pulling %d layers:\n", len(imageHistory))
 
 	for i := len(imageHistory) - 1; i >= 0; i-- {
 		layerId := imageHistory[i]
@@ -69,7 +70,7 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 	}
 	<-queue.DoneChan
 
-	_print("Downloading layers:\n")
+	fmt.Printf("Downloading layers:\n")
 
 	cpt := 0
 
@@ -78,7 +79,7 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 		//for each layers
 		layerId := imageHistory[i]
 
-		_print("\t%v ... ", layerId)
+		fmt.Printf("\t%v ... ", layerId)
 
 		if gitLayering {
 			//create a git branch
@@ -109,7 +110,7 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 
 		cpt++
 
-		_print("done\n")
+		fmt.Printf("done\n")
 	}
 	return nil
 }

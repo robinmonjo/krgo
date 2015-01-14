@@ -1,4 +1,4 @@
-package dlrootfs
+package main
 
 import (
 	"encoding/json"
@@ -71,13 +71,12 @@ func CommitChanges(rootfs, message string) error {
 	if _, err = gitRepo.CheckoutB(br); err != nil {
 		return fmt.Errorf("failed to checkout %v", err)
 	}
-	if b, err := gitRepo.AddAllAndCommit(message); err != nil {
-		_print(string(b) + "\n")
+	if _, err := gitRepo.AddAllAndCommit(message); err != nil {
 		return fmt.Errorf("failed to locally commit pushed changes %v", err)
 	}
 
-	_print("Your changes and some additional metadata have been commited on branch %v\nSummary:\n", br)
-	_print("\tImage ID: %v\n\tParent: %v\n\tChecksum: %v\n\tLayer size: %v\n", image.ID, image.Parent, image.Checksum, image.Size)
+	fmt.Printf("Your changes and some additional metadata have been commited on branch %v\nSummary:\n", br)
+	fmt.Printf("\tImage ID: %v\n\tParent: %v\n\tChecksum: %v\n\tLayer size: %v\n", image.ID, image.Parent, image.Checksum, image.Size)
 
 	return nil
 }

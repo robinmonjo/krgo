@@ -1,4 +1,4 @@
-package dlrootfs
+package main
 
 import (
 	"fmt"
@@ -10,8 +10,6 @@ import (
 func init() {
 	dockerversion.VERSION = "1.4.1" //needed otherwise error 500 on push
 }
-
-var PrintOutput bool //todo move this
 
 type HubSession struct {
 	registry.Session
@@ -38,7 +36,7 @@ func NewHubSession(imageName, userName, password string) (*HubSession, error) {
 
 	session, err := registry.NewSession(authConfig, registry.HTTPRequestFactory(metaHeaders), endpoint, true)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create docker hub session %v", err)
+		return nil, fmt.Errorf("failed to create docker hub session: %v", err)
 	}
 
 	return &HubSession{*session}, nil

@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/codegangsta/cli"
-	"github.com/rmonjo/dlrootfs"
 )
 
 const VERSION string = "1.4.0"
@@ -72,17 +71,15 @@ func main() {
 		},
 	}
 
-	dlrootfs.PrintOutput = true
-
 	app.Run(os.Args)
 }
 
 func pull(c *cli.Context) {
-	imageName, imageTag := dlrootfs.ParseImageNameTag(c.Args().First())
-	userName, password := dlrootfs.ParseCredentials(c.GlobalString("user"))
+	imageName, imageTag := ParseImageNameTag(c.Args().First())
+	userName, password := ParseCredentials(c.GlobalString("user"))
 
 	fmt.Printf("Opening a session for %v ...\n", imageName)
-	session, err := dlrootfs.NewHubSession(imageName, userName, password)
+	session, err := NewHubSession(imageName, userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -100,18 +97,18 @@ func pull(c *cli.Context) {
 }
 
 func commit(c *cli.Context) {
-	err := dlrootfs.CommitChanges(c.GlobalString("rootfs"), c.String("message"))
+	err := CommitChanges(c.GlobalString("rootfs"), c.String("message"))
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 func push(c *cli.Context) {
-	imageName, imageTag := dlrootfs.ParseImageNameTag(c.Args().First())
-	userName, password := dlrootfs.ParseCredentials(c.GlobalString("user"))
+	imageName, imageTag := ParseImageNameTag(c.Args().First())
+	userName, password := ParseCredentials(c.GlobalString("user"))
 
 	fmt.Printf("Opening a session for %v ...\n", imageName)
-	session, err := dlrootfs.NewHubSession(imageName, userName, password)
+	session, err := NewHubSession(imageName, userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}

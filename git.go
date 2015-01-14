@@ -1,11 +1,11 @@
-package dlrootfs
+package main
 
 import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
+	"path"
 	"strings"
 
 	"github.com/docker/docker/pkg/archive"
@@ -21,9 +21,8 @@ type GitRepo struct {
 	Path string
 }
 
-func IsGitRepo(path string) bool {
-	_, err := os.Stat(path + "/.git")
-	return err == nil
+func IsGitRepo(repoPath string) bool {
+	return fileExists(path.Join(repoPath, ".git"))
 }
 
 func NewGitRepo(path string) (*GitRepo, error) {
@@ -216,5 +215,9 @@ func (r *GitRepo) exec(args ...string) ([]byte, error) {
 		return nil, err
 	}
 	cmd := exec.Command(gitPath, args...)
-	return cmd.CombinedOutput()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return out, fmt.Errorf("cmd %v failed with output %v (%v)", cmd, string(out), err)
+	}
+	return out, nil
 }
