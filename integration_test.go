@@ -14,7 +14,7 @@ var (
 	dlrootfsBinary string   = "dlrootfs"
 	testImages     []string = []string{"busybox", "progrium/busybox"}
 	privateImage   string   = "robinmonjo/debian"
-	gitImage       string   = "ubuntu:14.04"
+	gitImage       string   = "busybox:latest"
 
 	rootfs string = "tmp_rootfs"
 
@@ -52,10 +52,9 @@ func Test_pullImageWithGit(t *testing.T) {
 
 	expectedBranches := []string{
 		"layer0_511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158",
-		"layer1_3b363fd9d7dab4db9591058a3f43e806f6fa6f7e2744b63b2df4b84eadb0685a",
-		"layer2_607c5d1cca71dd3b6c04327c3903363079b72ab3e5e4289d74fb00a9ac7ec2aa",
-		"layer3_f62feddc05dc67da9b725361f97d7ae72a32e355ce1585f9a60d090289120f73",
-		"layer4_8eaa4ff06b53ff7730c4d7a7e21b4426a4b46dee064ca2d5d90d757dc7ea040a",
+		"layer1_df7546f9f060a2268024c8a230d8639878585defcc1bc6f79d2728a13957871b",
+		"layer2_ea13149945cb6b1e746bf28032f02e9b5a793523481a0a18645fc77ad53c4ea2",
+		"layer3_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125",
 	}
 
 	for i, branch := range branches {
@@ -70,9 +69,9 @@ func pullImage(imageName, credentials string, gitLayering bool, t *testing.T, cl
 	if cleanup {
 		defer os.RemoveAll(rootfs)
 	}
-	args := []string{"-r", rootfs, "pull", imageName}
+	args := []string{"pull", imageName, "-r", rootfs}
 	if credentials != "" {
-		args = append([]string{"-u", credentials}, args...)
+		args = append(args, []string{"-u", credentials}...)
 	}
 	if gitLayering {
 		args = append(args, "-g")
