@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -19,6 +20,7 @@ func assertErrNil(err error, t *testing.T) {
 }
 
 func Test_gitFlow(t *testing.T) {
+	fmt.Printf("Testing git ... ")
 	r, err := NewGitRepo(REPO_PATH)
 	assertErrNil(err, t)
 
@@ -70,6 +72,7 @@ func Test_gitFlow(t *testing.T) {
 	assertErrNil(err, t)
 	f.Close()
 	exportUncommitedChangeSet(r, []string{"br3.txt"}, []string{"br1.txt", ".wh.br1.txt", "br0.txt", "br2.txt"}, t)
+	fmt.Printf("OK\n")
 }
 
 func exportUncommitedChangeSet(r *GitRepo, expectedFiles, unexpectedFiles []string, t *testing.T) {

@@ -13,7 +13,7 @@ const CREDS_ENV string = "DLROOTFS_CREDS"
 var (
 	dlrootfsBinary string   = "dlrootfs"
 	testImages     []string = []string{"busybox", "progrium/busybox"}
-	privateImage   string   = "robinmonjo/debian"
+	privateImage   string   = "robinmonjo/busybox"
 	gitImage       string   = "busybox:latest"
 
 	rootfs string = "tmp_rootfs"
