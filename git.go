@@ -217,7 +217,7 @@ func (r *GitRepo) exec(args ...string) ([]byte, error) {
 	cmd := exec.Command(gitPath, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return out, fmt.Errorf("cmd %v failed with output %v (%v)", cmd, string(out), err)
+		return out, fmt.Errorf("%v (%v)", string(out), err)
 	}
 	return out, nil
 }

@@ -17,7 +17,7 @@ import (
 
 func CommitChanges(rootfs, message string) error {
 	if !IsGitRepo(rootfs) {
-		return fmt.Errorf("%v doesn't appear to be a git repository", rootfs)
+		return fmt.Errorf("%v not a git repository", rootfs)
 	}
 	gitRepo, _ := NewGitRepo(rootfs)
 
@@ -69,14 +69,14 @@ func CommitChanges(rootfs, message string) error {
 	brNumber, _ := gitRepo.CountBranches()
 	br := "layer" + strconv.Itoa(brNumber) + "_" + image.ID
 	if _, err = gitRepo.CheckoutB(br); err != nil {
-		return fmt.Errorf("failed to checkout %v", err)
+		return err
 	}
 	if _, err := gitRepo.AddAllAndCommit(message); err != nil {
-		return fmt.Errorf("failed to locally commit pushed changes %v", err)
+		return err
 	}
 
-	fmt.Printf("Your changes and some additional metadata have been commited on branch %v\nSummary:\n", br)
-	fmt.Printf("\tImage ID: %v\n\tParent: %v\n\tChecksum: %v\n\tLayer size: %v\n", image.ID, image.Parent, image.Checksum, image.Size)
+	fmt.Printf("Changes commited in %v\n", br)
+	fmt.Printf("Image ID: %v\nParent: %v\nChecksum: %v\nLayer size: %v\n", image.ID, image.Parent, image.Checksum, image.Size)
 
 	return nil
 }

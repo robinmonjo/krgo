@@ -25,7 +25,7 @@ func NewPullingJob(session *HubSession, repoData *registry.RepositoryData, layer
 }
 
 func (job *PullingJob) Start() {
-	fmt.Printf("\tPulling fs layer %v\n", job.LayerId)
+	fmt.Printf("\t%v\n", job.LayerId)
 	endpoints := job.RepoData.Endpoints
 	tokens := job.RepoData.Tokens
 

@@ -25,12 +25,12 @@ func (s *HubSession) PullRepository(imageName, imageTag, rootfsDest string) erro
 func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLayering bool) error {
 	repoData, err := s.GetRepositoryData(imageName)
 	if err != nil {
-		return fmt.Errorf("failed to get repository data %v", err)
+		return err
 	}
 
 	tagsList, err := s.GetRemoteTags(repoData.Endpoints, imageName, repoData.Tokens)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve tag list %v", err)
+		return err
 	}
 
 	imageId := tagsList[imageTag]
@@ -45,18 +45,18 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 		}
 	}
 	if err != nil {
-		return fmt.Errorf("failed to get back image history %v", err)
+		return err
 	}
 
 	err = os.MkdirAll(rootfsDest, 0700)
 	if err != nil {
-		return fmt.Errorf("failed to create directory %v: %v", rootfsDest, err)
+		return err
 	}
 
 	var gitRepo *GitRepo
 	if gitLayering {
 		if gitRepo, err = NewGitRepo(rootfsDest); err != nil {
-			return fmt.Errorf("failed to create git repository %v", err)
+			return err
 		}
 	}
 
@@ -84,7 +84,7 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 		if gitLayering {
 			//create a git branch
 			if _, err = gitRepo.CheckoutB("layer" + strconv.Itoa(cpt) + "_" + layerId); err != nil {
-				return fmt.Errorf("failed to checkout %v", err)
+				return err
 			}
 		}
 
@@ -104,7 +104,7 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 		if gitLayering {
 			_, err = gitRepo.AddAllAndCommit("adding layer " + strconv.Itoa(cpt))
 			if err != nil {
-				return fmt.Errorf("failed to add changes %v", err)
+				return err
 			}
 		}
 
