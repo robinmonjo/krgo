@@ -75,7 +75,11 @@ func Test_pushImage(t *testing.T) {
 		return
 	}
 
-	fmt.Printf("Testing push image ... ")
+	timestamp := time.Now().Unix()
+	timestampStr := strconv.FormatInt(timestamp, 10)
+	newImageNameTag := "robinmonjo/dlrootfs_bb_" + timestampStr + ":testing"
+
+	fmt.Printf("Testing push image %v ... ", newImageNameTag)
 	//make some modifications on the image
 	f, err := os.Create(path.Join(rootfs, "modification.txt"))
 	assertErrNil(err, t)
@@ -86,9 +90,7 @@ func Test_pushImage(t *testing.T) {
 	fmt.Printf("commit ok ... ")
 
 	//push it
-	timestamp := time.Now().Unix()
-	timestampStr := strconv.FormatInt(timestamp, 10)
-	newImageNameTag := "robinmonjo/dlrootfs_bb_" + timestampStr + ":testing"
+
 	pushImage(newImageNameTag, creds, t)
 }
 
