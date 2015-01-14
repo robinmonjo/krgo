@@ -5,7 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"testing"
+	"time"
 )
 
 const CREDS_ENV string = "DLROOTFS_CREDS"
@@ -42,7 +44,6 @@ func Test_pullPrivateImage(t *testing.T) {
 
 func Test_pullImageWithGit(t *testing.T) {
 	fmt.Printf("Testing using git layering %v image ... ", gitImage)
-	defer os.RemoveAll(rootfs)
 	pullImage(gitImage, "", true, t, false)
 
 	gitRepo, _ := NewGitRepo(rootfs)
@@ -65,11 +66,38 @@ func Test_pullImageWithGit(t *testing.T) {
 	fmt.Printf("OK\n")
 }
 
-func pullImage(imageName, credentials string, gitLayering bool, t *testing.T, cleanup bool) {
+func Test_pushImage(t *testing.T) {
+	//pushing the previously downloaded image into a random folder
+	defer os.RemoveAll(rootfs)
+	creds := os.Getenv(CREDS_ENV)
+	if creds == "" {
+		fmt.Printf("Skipping push image test (%v not set)\n", CREDS_ENV)
+		return
+	}
+
+	fmt.Printf("Testing push image ... ")
+	//make some modifications on the image
+	f, err := os.Create(path.Join(rootfs, "modification.txt"))
+	assertErrNil(err, t)
+	f.Close()
+
+	//commit the image
+	commitImage("commit message", t)
+	fmt.Printf("commit ok ... ")
+
+	//push it
+	timestamp := time.Now().Unix()
+	timestampStr := strconv.FormatInt(timestamp, 10)
+	newImageNameTag := "robinmonjo/dlrootfs_bb_" + timestampStr + ":testing"
+	pushImage(newImageNameTag, creds, t)
+}
+
+//helpers
+func pullImage(imageNameTag, credentials string, gitLayering bool, t *testing.T, cleanup bool) {
 	if cleanup {
 		defer os.RemoveAll(rootfs)
 	}
-	args := []string{"pull", imageName, "-r", rootfs}
+	args := []string{"pull", imageNameTag, "-r", rootfs}
 	if credentials != "" {
 		args = append(args, []string{"-u", credentials}...)
 	}
@@ -90,4 +118,20 @@ func pullImage(imageName, credentials string, gitLayering bool, t *testing.T, cl
 			t.Fatalf("expected file %v doesn't exists\n", file)
 		}
 	}
+}
+
+func pushImage(imageNameTag, credentials string, t *testing.T) {
+	cmd := exec.Command(dlrootfsBinary, "push", imageNameTag, "-r", rootfs, "-u", credentials)
+	err := cmd.Start()
+	assertErrNil(err, t)
+	err = cmd.Wait()
+	assertErrNil(err, t)
+}
+
+func commitImage(message string, t *testing.T) {
+	cmd := exec.Command(dlrootfsBinary, "commit", "-r", rootfs, "-m", message)
+	err := cmd.Start()
+	assertErrNil(err, t)
+	err = cmd.Wait()
+	assertErrNil(err, t)
 }
