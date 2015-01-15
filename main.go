@@ -87,7 +87,7 @@ func pull(c *cli.Context) {
 func commit(c *cli.Context) {
 	err := CommitChanges(c.String("rootfs"), c.String("message"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Something went wrong: %v\nGit repo may have been altered. Please make sure it's fine before commiting again\n", err)
 	}
 	fmt.Printf("Done\n")
 }

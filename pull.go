@@ -83,7 +83,7 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 
 		if gitLayering {
 			//create a git branch
-			if _, err = gitRepo.CheckoutB("layer" + strconv.Itoa(cpt) + "_" + layerId); err != nil {
+			if _, err = gitRepo.CheckoutB("layer_" + strconv.Itoa(cpt) + "_" + layerId); err != nil {
 				return err
 			}
 		}

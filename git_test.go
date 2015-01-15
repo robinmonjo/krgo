@@ -13,13 +13,22 @@ import (
 
 const REPO_PATH string = "/tmp/git_repo"
 
+var (
+	branches []string = []string{
+		"layer_0_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125",
+		"layer_1_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8126",
+		"layer_2_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8127",
+		"layer_3_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8128",
+	}
+)
+
 func assertErrNil(err error, t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func Test_gitFlow(t *testing.T) {
+func TestGitFlow(t *testing.T) {
 	fmt.Printf("Testing git ... ")
 	r, err := NewGitRepo(REPO_PATH)
 	assertErrNil(err, t)
@@ -28,7 +37,7 @@ func Test_gitFlow(t *testing.T) {
 
 	//Create 3 branches
 	for i := 0; i < 3; i++ {
-		br := "br" + strconv.Itoa(i)
+		br := branches[i]
 		_, err = r.CheckoutB(br)
 		assertErrNil(err, t)
 
@@ -39,7 +48,7 @@ func Test_gitFlow(t *testing.T) {
 			t.Fatalf("current branch: %v expected %v", curBr, br)
 		}
 
-		f, err := os.Create(path.Join(r.Path, br+".txt"))
+		f, err := os.Create(path.Join(r.Path, "br"+strconv.Itoa(i)+".txt"))
 		assertErrNil(err, t)
 		f.Close()
 
@@ -47,25 +56,25 @@ func Test_gitFlow(t *testing.T) {
 		assertErrNil(err, t)
 	}
 
-	exportChangeSet(r, "br0", []string{"br0.txt"}, []string{"br1.txt", "br2.txt", ".git"}, t)
-	exportChangeSet(r, "br1", []string{"br1.txt"}, []string{"br0.txt", "br2.txt"}, t)
-	exportChangeSet(r, "br2", []string{"br2.txt"}, []string{"br0.txt", "br1.txt"}, t)
+	exportChangeSet(r, branches[0], []string{"br0.txt"}, []string{"br1.txt", "br2.txt", ".git"}, t)
+	exportChangeSet(r, branches[1], []string{"br1.txt"}, []string{"br0.txt", "br2.txt"}, t)
+	exportChangeSet(r, branches[2], []string{"br2.txt"}, []string{"br0.txt", "br1.txt"}, t)
 
 	//Modify files
 	err = ioutil.WriteFile(path.Join(r.Path, "br0.txt"), []byte("hello world !!"), 0777)
 	assertErrNil(err, t)
 	_, err = r.AddAllAndCommit("commit message")
 	assertErrNil(err, t)
-	exportChangeSet(r, "br2", []string{"br2.txt", "br0.txt"}, []string{"br1.txt"}, t)
+	exportChangeSet(r, branches[2], []string{"br2.txt", "br0.txt"}, []string{"br1.txt"}, t)
 
 	//Delete file
 	err = os.Remove(path.Join(r.Path, "br1.txt"))
 	assertErrNil(err, t)
 	_, err = r.AddAllAndCommit("commit message")
-	exportChangeSet(r, "br2", []string{"br2.txt", ".wh.br1.txt", "br0.txt"}, []string{"br1.txt"}, t)
+	exportChangeSet(r, branches[2], []string{"br2.txt", ".wh.br1.txt", "br0.txt"}, []string{"br1.txt"}, t)
 
 	//Uncommited changes
-	_, err = r.CheckoutB("br3")
+	_, err = r.CheckoutB(branches[3])
 	assertErrNil(err, t)
 
 	f, err := os.Create(path.Join(r.Path, "br3.txt"))

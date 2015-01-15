@@ -65,6 +65,9 @@ func (r *GitRepo) Checkout(branch string) ([]byte, error) {
 }
 
 func (r *GitRepo) CheckoutB(branch string) ([]byte, error) {
+	if err := validateBranch(branch); err != nil {
+		return nil, err
+	}
 	return r.execInWorkTree("checkout", "-b", branch)
 }
 
@@ -149,10 +152,13 @@ func (r *GitRepo) ExportChangeSet(branch string) (archive.Archive, error) {
 	if err != nil {
 		return nil, err
 	}
-	idx := indexOf(branches, branch)
+
+	idx, err := exportLayerNumberFromBranch(branch)
+	if err != nil {
+		return nil, err
+	}
+
 	switch idx {
-	case -1:
-		return nil, fmt.Errorf("branch %v not found", branch)
 	case 0:
 		changes, err := archive.ChangesDirs(r.Path, "")
 		if err != nil {

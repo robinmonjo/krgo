@@ -25,6 +25,7 @@ func CommitChanges(rootfs, message string) error {
 	if err != nil {
 		return err
 	}
+	defer layerData.Close()
 
 	//Load image data
 	image, err := image.LoadImage(gitRepo.Path) //reading json file in rootfs
@@ -67,7 +68,7 @@ func CommitChanges(rootfs, message string) error {
 
 	//commit the changes in a new branch
 	brNumber, _ := gitRepo.CountBranches()
-	br := "layer" + strconv.Itoa(brNumber) + "_" + image.ID
+	br := "layer_" + strconv.Itoa(brNumber) + "_" + image.ID
 	if _, err = gitRepo.CheckoutB(br); err != nil {
 		return err
 	}

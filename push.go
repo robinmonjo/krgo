@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path"
 	"strings"
 
-	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/registry"
 )
 
@@ -17,13 +15,14 @@ func (s *HubSession) PushRepository(imageName, imageTag, rootfs string) error {
 	}
 	gitRepo, _ := NewGitRepo(rootfs)
 
-	var imageIds []string
 	branches, err := gitRepo.Branch()
 	if err != nil {
 		return err
 	}
+	var imageIds []string = make([]string, len(branches), len(branches))
 	for _, br := range branches {
-		imageIds = append(imageIds, strings.Split(br, "_")[1]) //branch format layerN_imageId
+		idx, _ := exportLayerNumberFromBranch(br)
+		imageIds[idx] = strings.Split(br, "_")[2] //branch format layer_N_imageId
 	}
 
 	fmt.Printf("Pushing %d layers:\n", len(imageIds))
@@ -93,13 +92,9 @@ func (s *HubSession) pushImageLayer(gitRepo *GitRepo, branch, imgID, ep string, 
 	if err != nil {
 		return err
 	}
-	layer, err := archive.NewTempArchive(layerData, "")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(layer.Name())
+	defer layerData.Close()
 
-	checksum, checksumPayload, err := s.PushImageLayerRegistry(imgID, layer, ep, token, jsonRaw)
+	checksum, checksumPayload, err := s.PushImageLayerRegistry(imgID, layerData, ep, token, jsonRaw)
 	if err != nil {
 		return err
 	}
