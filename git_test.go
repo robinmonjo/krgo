@@ -30,7 +30,7 @@ func assertErrNil(err error, t *testing.T) {
 
 func TestGitFlow(t *testing.T) {
 	fmt.Printf("Testing git ... ")
-	r, err := NewGitRepo(REPO_PATH)
+	r, err := newGitRepo(REPO_PATH)
 	assertErrNil(err, t)
 
 	defer os.RemoveAll(REPO_PATH)
@@ -38,10 +38,10 @@ func TestGitFlow(t *testing.T) {
 	//Create 3 branches
 	for i := 0; i < 3; i++ {
 		br := branches[i]
-		_, err = r.CheckoutB(br)
+		_, err = r.checkoutB(br)
 		assertErrNil(err, t)
 
-		curBr, err := r.CurrentBranch()
+		curBr, err := r.currentBranch()
 		assertErrNil(err, t)
 
 		if br != curBr {
@@ -52,7 +52,7 @@ func TestGitFlow(t *testing.T) {
 		assertErrNil(err, t)
 		f.Close()
 
-		_, err = r.AddAllAndCommit("commit message")
+		_, err = r.addAllAndCommit("commit message")
 		assertErrNil(err, t)
 	}
 
@@ -63,18 +63,18 @@ func TestGitFlow(t *testing.T) {
 	//Modify files
 	err = ioutil.WriteFile(path.Join(r.Path, "br0.txt"), []byte("hello world !!"), 0777)
 	assertErrNil(err, t)
-	_, err = r.AddAllAndCommit("commit message")
+	_, err = r.addAllAndCommit("commit message")
 	assertErrNil(err, t)
 	exportChangeSet(r, branches[2], []string{"br2.txt", "br0.txt"}, []string{"br1.txt"}, t)
 
 	//Delete file
 	err = os.Remove(path.Join(r.Path, "br1.txt"))
 	assertErrNil(err, t)
-	_, err = r.AddAllAndCommit("commit message")
+	_, err = r.addAllAndCommit("commit message")
 	exportChangeSet(r, branches[2], []string{"br2.txt", ".wh.br1.txt", "br0.txt"}, []string{"br1.txt"}, t)
 
 	//Uncommited changes
-	_, err = r.CheckoutB(branches[3])
+	_, err = r.checkoutB(branches[3])
 	assertErrNil(err, t)
 
 	f, err := os.Create(path.Join(r.Path, "br3.txt"))
@@ -84,15 +84,15 @@ func TestGitFlow(t *testing.T) {
 	fmt.Printf("OK\n")
 }
 
-func exportUncommitedChangeSet(r *GitRepo, expectedFiles, unexpectedFiles []string, t *testing.T) {
-	tar, err := r.ExportUncommitedChangeSet()
+func exportUncommitedChangeSet(r *gitRepo, expectedFiles, unexpectedFiles []string, t *testing.T) {
+	tar, err := r.exportUncommitedChangeSet()
 	assertErrNil(err, t)
 	defer tar.Close()
 	checkTarCorrect(tar, expectedFiles, unexpectedFiles, t)
 }
 
-func exportChangeSet(r *GitRepo, branch string, expectedFiles, unexpectedFiles []string, t *testing.T) {
-	tar, err := r.ExportChangeSet(branch)
+func exportChangeSet(r *gitRepo, branch string, expectedFiles, unexpectedFiles []string, t *testing.T) {
+	tar, err := r.exportChangeSet(branch)
 	assertErrNil(err, t)
 	defer tar.Close()
 	checkTarCorrect(tar, expectedFiles, unexpectedFiles, t)

@@ -8,7 +8,7 @@ import (
 )
 
 type PullingJob struct {
-	Session  *HubSession
+	Session  *hubSession
 	RepoData *registry.RepositoryData
 
 	LayerId string
@@ -20,7 +20,7 @@ type PullingJob struct {
 	Err error
 }
 
-func NewPullingJob(session *HubSession, repoData *registry.RepositoryData, layerId string) *PullingJob {
+func NewPullingJob(session *hubSession, repoData *registry.RepositoryData, layerId string) *PullingJob {
 	return &PullingJob{Session: session, RepoData: repoData, LayerId: layerId}
 }
 

@@ -11,12 +11,12 @@ func init() {
 	dockerversion.VERSION = "1.4.1" //needed otherwise error 500 on push
 }
 
-type HubSession struct {
+type hubSession struct {
 	registry.Session
 }
 
 //return a HubSession associated with the repository contained in imageName
-func NewHubSession(imageName, userName, password string) (*HubSession, error) {
+func newHubSession(imageName, userName, password string) (*hubSession, error) {
 	hostname, _, err := registry.ResolveRepositoryName(imageName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find repository for image %v: %v", imageName, err)
@@ -39,5 +39,5 @@ func NewHubSession(imageName, userName, password string) (*HubSession, error) {
 		return nil, fmt.Errorf("failed to create docker hub session: %v", err)
 	}
 
-	return &HubSession{*session}, nil
+	return &hubSession{*session}, nil
 }

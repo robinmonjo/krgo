@@ -10,7 +10,7 @@ import (
 )
 
 //credentials format: <username>:<password>
-func ParseCredentials(credentials string) (string, string) {
+func parseCredentials(credentials string) (string, string) {
 	credentialsSplit := strings.SplitN(credentials, ":", 2)
 	if len(credentialsSplit) != 2 {
 		return "", ""
@@ -19,7 +19,7 @@ func ParseCredentials(credentials string) (string, string) {
 }
 
 //image format: <repository>/<image_name>:<tag>. tag defaults to latest, repository defaults to library
-func ParseImageNameTag(imageNameTag string) (imageName, imageTag string) {
+func parseImageNameTag(imageNameTag string) (imageName, imageTag string) {
 	if strings.Contains(imageNameTag, ":") {
 		imageName = strings.SplitN(imageNameTag, ":", 2)[0]
 		imageTag = strings.SplitN(imageNameTag, ":", 2)[1]

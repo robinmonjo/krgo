@@ -63,19 +63,19 @@ func main() {
 }
 
 func pull(c *cli.Context) {
-	imageName, imageTag := ParseImageNameTag(c.Args().First())
-	userName, password := ParseCredentials(c.String("user"))
+	imageName, imageTag := parseImageNameTag(c.Args().First())
+	userName, password := parseCredentials(c.String("user"))
 
 	fmt.Printf("Pulling image %v:%v ...\n", imageName, imageTag)
-	session, err := NewHubSession(imageName, userName, password)
+	session, err := newHubSession(imageName, userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if c.Bool("git-layering") {
-		err = session.PullRepository(imageName, imageTag, c.String("rootfs"))
+		err = session.pullRepository(imageName, imageTag, c.String("rootfs"))
 	} else {
-		err = session.PullImage(imageName, imageTag, c.String("rootfs"))
+		err = session.pullImage(imageName, imageTag, c.String("rootfs"))
 	}
 	if err != nil {
 		log.Fatal(err)
@@ -85,7 +85,7 @@ func pull(c *cli.Context) {
 }
 
 func commit(c *cli.Context) {
-	err := CommitChanges(c.String("rootfs"), c.String("message"))
+	err := commitChanges(c.String("rootfs"), c.String("message"))
 	if err != nil {
 		log.Fatalf("Something went wrong: %v\nGit repo may have been altered. Please make sure it's fine before commiting again\n", err)
 	}
@@ -93,16 +93,16 @@ func commit(c *cli.Context) {
 }
 
 func push(c *cli.Context) {
-	imageName, imageTag := ParseImageNameTag(c.Args().First())
-	userName, password := ParseCredentials(c.String("user"))
+	imageName, imageTag := parseImageNameTag(c.Args().First())
+	userName, password := parseCredentials(c.String("user"))
 
 	fmt.Printf("Pushing image %v:%v ...\n", imageName, imageTag)
-	session, err := NewHubSession(imageName, userName, password)
+	session, err := newHubSession(imageName, userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = session.PushRepository(imageName, imageTag, c.String("rootfs"))
+	err = session.pushRepository(imageName, imageTag, c.String("rootfs"))
 	if err != nil {
 		log.Fatal(err)
 	}

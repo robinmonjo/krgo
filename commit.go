@@ -15,13 +15,13 @@ import (
 	"github.com/docker/docker/utils"
 )
 
-func CommitChanges(rootfs, message string) error {
-	if !IsGitRepo(rootfs) {
+func commitChanges(rootfs, message string) error {
+	if !isGitRepo(rootfs) {
 		return fmt.Errorf("%v not a git repository", rootfs)
 	}
-	gitRepo, _ := NewGitRepo(rootfs)
+	gitRepo, _ := newGitRepo(rootfs)
 
-	layerData, err := gitRepo.ExportUncommitedChangeSet()
+	layerData, err := gitRepo.exportUncommitedChangeSet()
 	if err != nil {
 		return err
 	}
@@ -67,12 +67,12 @@ func CommitChanges(rootfs, message string) error {
 	}
 
 	//commit the changes in a new branch
-	brNumber, _ := gitRepo.CountBranches()
+	brNumber, _ := gitRepo.countBranch()
 	br := "layer_" + strconv.Itoa(brNumber) + "_" + image.ID
-	if _, err = gitRepo.CheckoutB(br); err != nil {
+	if _, err = gitRepo.checkoutB(br); err != nil {
 		return err
 	}
-	if _, err := gitRepo.AddAllAndCommit(message); err != nil {
+	if _, err := gitRepo.addAllAndCommit(message); err != nil {
 		return err
 	}
 

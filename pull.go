@@ -13,16 +13,16 @@ import (
 const MAX_DL_CONCURRENCY int = 7
 
 //download a flattened dowker image
-func (s *HubSession) PullImage(imageName, imageTag, rootfsDest string) error {
+func (s *hubSession) pullImage(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, false)
 }
 
 //download an image putting each layer in a git branch "on top of each other"
-func (s *HubSession) PullRepository(imageName, imageTag, rootfsDest string) error {
+func (s *hubSession) pullRepository(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, true)
 }
 
-func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLayering bool) error {
+func (s *hubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLayering bool) error {
 	repoData, err := s.GetRepositoryData(imageName)
 	if err != nil {
 		return err
@@ -53,9 +53,9 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 		return err
 	}
 
-	var gitRepo *GitRepo
+	var gitRepo *gitRepo
 	if gitLayering {
-		if gitRepo, err = NewGitRepo(rootfsDest); err != nil {
+		if gitRepo, err = newGitRepo(rootfsDest); err != nil {
 			return err
 		}
 	}
@@ -83,7 +83,7 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 
 		if gitLayering {
 			//create a git branch
-			if _, err = gitRepo.CheckoutB("layer_" + strconv.Itoa(cpt) + "_" + layerId); err != nil {
+			if _, err = gitRepo.checkoutB("layer_" + strconv.Itoa(cpt) + "_" + layerId); err != nil {
 				return err
 			}
 		}
@@ -102,7 +102,7 @@ func (s *HubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 		}
 
 		if gitLayering {
-			_, err = gitRepo.AddAllAndCommit("adding layer " + strconv.Itoa(cpt))
+			_, err = gitRepo.addAllAndCommit("adding layer " + strconv.Itoa(cpt))
 			if err != nil {
 				return err
 			}
