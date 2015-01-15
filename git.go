@@ -39,7 +39,7 @@ func newGitRepo(path string) (*gitRepo, error) {
 
 	email, _ := r.userConfig("email")
 	if len(email) == 0 {
-		_, err = r.execInWorkTree("config", "user.email", "fake@dlrootfs.com")
+		_, err = r.execInWorkTree("config", "user.email", "fake@cargo.com")
 		if err != nil {
 			return nil, err
 		}
@@ -47,7 +47,7 @@ func newGitRepo(path string) (*gitRepo, error) {
 
 	name, _ := r.userConfig("name")
 	if len(name) == 0 {
-		_, err = r.execInWorkTree("config", "user.name", "dlrootfs")
+		_, err = r.execInWorkTree("config", "user.name", "cargo")
 		if err != nil {
 			return nil, err
 		}

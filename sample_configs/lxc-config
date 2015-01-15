@@ -2,7 +2,7 @@
 # Container specific configuration
 #CHANGE ME
 lxc.rootfs = /root/ubuntu
-lxc.utsname = dlrootfs
+lxc.utsname = cargo
 lxc.arch = amd64
 
 # Network configuration

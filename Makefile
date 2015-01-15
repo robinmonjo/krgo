@@ -5,10 +5,10 @@ build:
 
 release:
 	mkdir -p release
-	GOOS=linux go build -o ./release/dlrootfs
-	cd release && tar -zcf dlrootfs_$(HARDWARE).tgz dlrootfs
+	GOOS=linux go build -o ./release/cargo
+	cd release && tar -zcf cargo_$(HARDWARE).tgz cargo
 
-	rm release/dlrootfs
+	rm release/cargo
 
 test:
 	go install

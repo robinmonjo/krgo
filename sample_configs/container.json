@@ -175,10 +175,10 @@
     "environment": [
         "HOME=/",
         "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-        "HOSTNAME=dlrootfs-demo",
+        "HOSTNAME=cargo-demo",
         "TERM=xterm"
     ],
-    "hostname": "dlrootfs-demo",
+    "hostname": "cargo-demo",
     "namespaces": {
         "NEWIPC": true,
         "NEWNET": true,

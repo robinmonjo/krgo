@@ -53,6 +53,7 @@ var (
 
 func main() {
 	app := cli.NewApp()
+	app.Name = "cargo"
 	app.Version = VERSION
 	app.Usage = "docker hub without docker"
 	app.Author = "Robin Monjo"
