@@ -106,5 +106,5 @@ func push(c *cli.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Done\n")
+	fmt.Printf("Done: https://registry.hub.docker.com/u/%v\n", imageName)
 }
