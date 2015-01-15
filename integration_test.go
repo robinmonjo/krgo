@@ -23,6 +23,12 @@ var (
 	minimalLinuxRootfs []string = []string{"bin", "dev", "etc", "home", "lib", "mnt", "opt", "proc", "root", "run", "sbin", "sys", "tmp", "usr", "var", "json"}
 )
 
+func itAssertErrNil(err error, t *testing.T) {
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestPullImages(t *testing.T) {
 	for _, imageName := range testImages {
 		fmt.Printf("Testing %v image ... ", imageName)
@@ -82,7 +88,7 @@ func TestPushImage(t *testing.T) {
 	fmt.Printf("Testing push image %v ... ", newImageNameTag)
 	//make some modifications on the image
 	f, err := os.Create(path.Join(rootfs, "modification.txt"))
-	assertErrNil(err, t)
+	itAssertErrNil(err, t)
 	f.Close()
 
 	//commit the image
@@ -109,10 +115,10 @@ func pullImage(imageNameTag, credentials string, gitLayering bool, t *testing.T,
 
 	cmd := exec.Command(dlrootfsBinary, args...)
 	err := cmd.Start()
-	assertErrNil(err, t)
+	itAssertErrNil(err, t)
 
 	err = cmd.Wait()
-	assertErrNil(err, t)
+	itAssertErrNil(err, t)
 
 	fmt.Printf("Checking FS ... ")
 	for _, file := range minimalLinuxRootfs {
@@ -125,15 +131,15 @@ func pullImage(imageNameTag, credentials string, gitLayering bool, t *testing.T,
 func pushImage(imageNameTag, credentials string, t *testing.T) {
 	cmd := exec.Command(dlrootfsBinary, "push", imageNameTag, "-r", rootfs, "-u", credentials)
 	err := cmd.Start()
-	assertErrNil(err, t)
+	itAssertErrNil(err, t)
 	err = cmd.Wait()
-	assertErrNil(err, t)
+	itAssertErrNil(err, t)
 }
 
 func commitImage(message string, t *testing.T) {
 	cmd := exec.Command(dlrootfsBinary, "commit", "-r", rootfs, "-m", message)
 	err := cmd.Start()
-	assertErrNil(err, t)
+	itAssertErrNil(err, t)
 	err = cmd.Wait()
-	assertErrNil(err, t)
+	itAssertErrNil(err, t)
 }
