@@ -48,4 +48,4 @@ clone git github.com/docker/libtrust 230dfd18c232
 
 clone git github.com/codegangsta/cli v1.2.0
 
-echo "don't forget to add vendor folder to your GOPATH (export GOPATH=\$GOPATH:\`pwd\`/vendor)"
+echo "if not using make, don't forget to add vendor folder to your GOPATH (export GOPATH=\$GOPATH:\`pwd\`/vendor)"

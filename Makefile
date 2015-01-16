@@ -1,18 +1,14 @@
-HARDWARE=$(shell uname -m)
+GOPATH:=`pwd`/vendor:$(GOPATH)
 
-build:
-	go build
+build: vendor
+	GOPATH=$(GOPATH) go build
 
-release:
-	mkdir -p release
-	GOOS=linux go build -o ./release/cargo
-	cd release && tar -zcf cargo_$(HARDWARE).tgz cargo
-
-	rm release/cargo
-
-test:
-	go install
-	go test
+test: vendor
+	GOPATH=$(GOPATH) go install
+	GOPATH=$(GOPATH) go test
 
 clean:
-	rm -rf release
+	rm -rf ./cargo ./rootfs
+
+vendor:
+	sh vendor.sh
