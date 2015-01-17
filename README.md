@@ -42,7 +42,7 @@ VERSION:
 COMMANDS:
    pull		pull an image
    push		push an image
-   commit	commit changes to an image pull with -g
+   commit	commit changes to an image pulled with -g
    help, h	Shows a list of commands or help for one command
 ````
 

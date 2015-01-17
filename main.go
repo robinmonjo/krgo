@@ -41,7 +41,7 @@ var (
 
 	commitCmd = cli.Command{
 		Name:        "commit",
-		Usage:       "commit changes to an image pull with -g",
+		Usage:       "commit changes to an image pulled with -g",
 		Description: "commit [-r rootfs] -m message",
 		Action:      commit,
 		Flags: []cli.Flag{
