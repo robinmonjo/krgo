@@ -22,7 +22,7 @@ Using `cargo`, non docker users would be able to pull and share linux images usi
 ##Installation
 
 ````bash
-curl -sL https://github.com/robinmonjo/cargo/releases/download/v1.4.1/dlrootfs_x86_64.tgz | tar -C /usr/local/bin -zxf -
+curl -sL https://github.com/robinmonjo/cargo/releases/download/v1.4.1/cargo-v1.4.1_x86_64.tgz | tar -C /usr/local/bin -zxf -
 ````
 
 Provided binary is linux only but `cargo` may be used on OSX and (probably) Windows too.
