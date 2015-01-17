@@ -1,98 +1,110 @@
-## cargo
+#cargo     (download badge)
 
--- download badge
+> cargo was formerly [dlrootfs](https://github.com/robinmonjo/dlrootfs)
 
--- 5 lines description
+docker hub without docker. `cargo` is a command line tool to pull and push docker images from/to the docker hub.
+`cargo` brings the docker hub capabilities to every container engines.
 
--- full tutorial link
+##Why cargo ?
 
--- global usage
+docker is really popular and lots of people and organisations are building docker images. These images are stored
+and shared on the docker hub. However they are only available for docker's user. Metadatas appart, a docker
+image is a linux root file system that can be used with every container engines (LXC, libcontainer, systemd-nspawn, rocket ...).
+Using `cargo`, non docker users would be able to pull and share linux images using the docker hub.
 
--- pull
+##Installation
 
--- commit
+##Usage
 
--- push
-
--- why it rocks (very convenient way to store images)
-
--- hacking with me
-
--- resources (docker image spec / archive package / docker repo)
-
--- license
-
-
-Download root file systems from the [docker hub](https://registry.hub.docker.com/) without docker
-
-````bash
-Usage: cargo <image_name>:[<image_tag>] [-d <rootfs_destination>] [-u <username>:<password>] [-g]
-
-Examples:
-  cargo ubuntu  #if no tag, use latest
-  cargo ubuntu:precise -d ubuntu_rootfs
-  cargo dockefile/elasticsearch:latest
-  cargo my_repo/my_image:latest -u username:password
-  cargo version
-Default:
-  -d="./rootfs": destination of the resulting rootfs directory
-  -g=false: use git layering
-  -u="": docker hub credentials: <username>:<password>
 ````
-#### `-g` flag
+NAME:
+   cargo - docker hub without docker
 
-As explained [in the doc](https://docs.docker.com/terms/layer/), docker images are a set of layers. Using the `-g` flag,
-`cargo` will download the file system in a git repository where each layer is downloaded in a separate branch:
+USAGE:
+   cargo [global options] command [command options] [arguments...]
 
-![Alt text](https://dl.dropboxusercontent.com/u/6543817/cargo-readme/cargo-g.png)
+VERSION:
+   1.4.0
 
-The screenshot above is the resulting rootfs of `cargo ubuntu -g`. We can clearly see the image is composed of 5 layers.
-`layer(n)_*` results from `git checkout -b layer(n-1)_*` with data from `layer(n)`.
-
-It allows to use git to see diffs between layers, checkout a new branch, work on the rootfs with a container engine, review
-and commit changes, etc. It also opens the path for `docker push` without docker (coming soon).
-
-### Installation
-
-````bash
-curl -sL https://github.com/robinmonjo/cargo/releases/download/v1.4.0/cargo_x86_64.tgz | tar -C /usr/local/bin -zxf -
+COMMANDS:
+   pull		pull an image
+   push		push an image
+   commit	commit changes to an image pull with -g
+   help, h	Shows a list of commands or help for one command
 ````
 
-Provided binary is linux only but `cargo` may be used on OSX and (probably) windows too.
-The difference is, when ran on a linux box, `cargo` will perform `lchown` during layer extraction,
-it won't otherwise.
+###cargo pull
 
-Some images require you to be root during extraction (the official busybox image for example) why others won't
-(the official debian one).
+`cargo pull image [-r rootfs] [-u user] [-g]`
 
-### Why cargo ?
+Pull `image` into `rootfs` directory:
+- `-u` flag allows you to specify your docker hub credentials: `username:password`
+- `-g` flag download the image into a git repository. Each branch contains a layer
+of the image. This is the resulting rootfs of `cargo pull busybox -g`:
 
-Docker has become really popular and lots of people and organisations are building docker images they store
-and share on the [docker hub](https://registry.hub.docker.com/). However these images are only available for
-docker's user. `cargo` allows to download root file systems from the docker hub so they can be used
-with other container engines ([LXC](https://linuxcontainers.org/), [nsinit (`libcontainer`)](https://github.com/docker/libcontainer), [systemd-nspawn](http://0pointer.de/public/systemd-man/systemd-nspawn.html) ...)
+![Alt text](https://dl.dropboxusercontent.com/u/6543817/cargo-readme/cargo_br.png)
+
+Branches are named `layer_<layer_index>_<layer_id>`. layer_n is a `checkout -b` from layer_n-1, so
+the layer_3 branch here contains the full image. You can then use it as is.
+
+The `-g` flag brings the power of git to container images. But more importantly, it will allow to
+push image modifications to the docker hub (see cargo push)
+
+**Examples**:
+- `cargo pull debian`
+- `cargo pull progrium/busybox -r busybox -g`
+- `cargo pull robinmonjo/debian:latest -r debian -u $DHUB_CREDS`
 
 
-##### Using docker images with nsinit
+###cargo push
 
-1. Browse the [docker hub](https://registry.hub.docker.com/) and find the image you want (say [ubuntu](https://registry.hub.docker.com/u/library/ubuntu/))
-2. Download ubuntu rootfs: `cargo ubuntu`
-3. `cd` to `rootfs` and create a `container.json` file (needed by `libcontainer`, you can use the sample config of this repository `sample_configs/container.json`).
-4. Launch bash in the official Docker ubuntu image: `nsinit exec /bin/bash`
+Push an image downloaded with the `-g` option to the docker hub.
 
-##### Using docker images with LXC
+In order to push your modification you must commit them beforehand:
 
-1. Browse the [docker hub](https://registry.hub.docker.com/) and find the image you want (say [ubuntu](https://registry.hub.docker.com/u/library/ubuntu/))
-2. Download ubuntu rootfs: `cargo ubuntu`
-3. Create a `config` file (for examples the one you can find in `sample_configs/lxc-config`)
-4. Do not forget to change the `config` to match your settings (especially rootfs location)
-5. Launch bash in the "official Docker ubuntu image LXC container": `lxc-start -n ubuntu -f <config file> /bin/bash`
+`cargo commit [-r rootfs] -m "commit message"`
 
-### Warnings
+This will take every changes on the current branch, and commit them onto a new branch.
+The new branch will be properly named and some additional metadata will be written so
+this new layer can be pushed:
 
-* Untaring on the `vagrant` shared folder will fail
-* `cgroup-lite` is required for `nsinit`
+````bash
+$> cargo commit -m "adding new user"
+Changes commited in layer_4_804c37249306321b90bbfa07d7cfe02d5f3d056971eb069d7bc37647de484a35
+Image ID: 804c37249306321b90bbfa07d7cfe02d5f3d056971eb069d7bc37647de484a35
+Parent: 4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125
+Checksum: tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+Layer size: 1536
+Done
+````
 
-### License
+If you plan to use `cargo push`, branches should not be created by hand and commit must be done via `cargo`.
+Also, branches other than the last one should never be modified.
+
+`cargo push image [-r rootfs] -u username:password`
+
+Push the image in the `rootfs` directory onto the docker hub.
+
+**Examples:**
+- `cargo push username/debian:cargo -u $DHUB_CREDS`
+- `cargo push username/busybox` -r busybox -u $DHUB_CREDS`
+
+
+##Hacking on cargo
+
+`cargo` directly uses docker source code. Docker is moving fast, and `cargo` must keep up.
+I will maintain it but if you want to contribute every pull requests / bug reports are welcome.
+
+You don't need linux, `cargo` can run on a Mac (Windows ?). Fork the repository and clone it into your
+go workspace. Then `make vendor`, `make build` and you are ready to go. Tests can be run
+with `make test`. Note that most `cargo` command must be run as sudo.
+
+##Resources
+
+- [docker image specification](https://github.com/docker/docker/blob/master/image/spec/v1.md)
+- [docker repository](https://github.com/docker/docker)
+- [docker hub](https://hub.docker.com/)
+
+##License
 
 MIT
