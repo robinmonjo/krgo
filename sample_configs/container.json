@@ -183,18 +183,9 @@
     "hostname": "cargo-demo",
     "namespaces": [
         {"type": "NEWIPC"},
-        {"type": "NEWNET"},
         {"type": "NEWNS"},
         {"type": "NEWPID"},
         {"type": "NEWUTS"}
-    ],
-    "networks": [
-        {
-            "address": "127.0.0.1/0",
-            "gateway": "localhost",
-            "mtu": 1500,
-            "type": "loopback"
-        }
     ],
     "tty": true,
     "user": "root"
