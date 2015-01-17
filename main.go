@@ -8,7 +8,7 @@ import (
 	"github.com/codegangsta/cli"
 )
 
-const VERSION string = "1.4.0"
+const VERSION string = "1.4.1"
 
 var (
 	//shared flags

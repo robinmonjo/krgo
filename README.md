@@ -1,4 +1,4 @@
-#cargo     (download badge)
+#cargo
 
 > cargo was formerly [dlrootfs](https://github.com/robinmonjo/dlrootfs)
 
@@ -21,7 +21,11 @@ Using `cargo`, non docker users would be able to pull and share linux images usi
 
 ##Installation
 
-coming soon
+````bash
+curl -sL https://github.com/robinmonjo/cargo/releases/download/v1.4.1/dlrootfs_x86_64.tgz | tar -C /usr/local/bin -zxf -
+````
+
+Provided binary is linux only but `cargo` may be used on OSX and (probably) Windows too.
 
 ##Usage
 
@@ -104,7 +108,7 @@ Push the image in the `rootfs` directory onto the docker hub.
 `cargo` directly uses some of docker source code. Docker is moving fast, and `cargo` must keep up.
 I will maintain it but if you want to contribute every pull requests / bug reports are welcome.
 
-You don't need linux, `cargo` can run on a Mac (Windows ?). Fork the repository and clone it into your
+You don't need linux, `cargo` can run on OSX (Windows ?). Fork the repository and clone it into your
 go workspace. Then `make vendor`, `make build` and you are ready to go. Tests can be run
 with `make test`. Note that most `cargo` command must be run as sudo.
 
