@@ -197,5 +197,5 @@
         }
     ],
     "tty": true,
-    "user": "daemon"
+    "user": "root"
 }
