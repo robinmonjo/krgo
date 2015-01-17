@@ -112,7 +112,9 @@
                 "path": "/dev/random",
                 "type": 99
             }
-        ]
+        ],
+        "name": "docker-koye",
+        "parent": "docker"
     },
     "restrict_sys": true,
     "mount_config": {
@@ -175,17 +177,17 @@
     "environment": [
         "HOME=/",
         "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-        "HOSTNAME=cargo-demo",
+        "HOSTNAME=koye",
         "TERM=xterm"
     ],
     "hostname": "cargo-demo",
-    "namespaces": {
-        "NEWIPC": true,
-        "NEWNET": true,
-        "NEWNS": true,
-        "NEWPID": true,
-        "NEWUTS": true
-    },
+    "namespaces": [
+        {"type": "NEWIPC"},
+        {"type": "NEWNET"},
+        {"type": "NEWNS"},
+        {"type": "NEWPID"},
+        {"type": "NEWUTS"}
+    ],
     "networks": [
         {
             "address": "127.0.0.1/0",
@@ -195,5 +197,5 @@
         }
     ],
     "tty": true,
-    "user": "root"
+    "user": "daemon"
 }
