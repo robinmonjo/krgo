@@ -5,7 +5,7 @@
 docker hub without docker. `cargo` is a command line tool to pull and push docker images from/to the docker hub.
 `cargo` brings the docker hub content and delivery capabilities to any container engine.
 
-[read the launch article and how to]() coming soon
+[Read the launch article and how to](https://gist.github.com/robinmonjo/f6ca0f85a204c8103e10)
 
 ##Why cargo ?
 
