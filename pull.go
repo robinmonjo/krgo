@@ -10,7 +10,7 @@ import (
 	"github.com/docker/docker/pkg/archive"
 )
 
-const MAX_DL_CONCURRENCY int = 7
+const MAX_DL_CONCURRENCY = 7
 
 //download a flattened dowker image
 func (s *hubSession) pullImage(imageName, imageTag, rootfsDest string) error {

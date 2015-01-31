@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	DIFF_ADDED    string = "A"
-	DIFF_MODIFIED string = "M"
-	DIFF_DELETED  string = "D"
+	DIFF_ADDED    = "A"
+	DIFF_MODIFIED = "M"
+	DIFF_DELETED  = "D"
 )
 
 type gitRepo struct {

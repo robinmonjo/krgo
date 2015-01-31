@@ -13,14 +13,14 @@ import (
 const CREDS_ENV string = "DHUB_CREDS"
 
 var (
-	cargoBinary  string   = "cargo"
-	testImages   []string = []string{"busybox", "progrium/busybox"}
-	privateImage string   = "robinmonjo/busybox"
-	gitImage     string   = "busybox:latest"
+	cargoBinary  = "cargo"
+	testImages   = []string{"busybox", "progrium/busybox"}
+	privateImage = "robinmonjo/busybox"
+	gitImage     = "busybox:latest"
 
-	rootfs string = "tmp_rootfs"
+	rootfs = "tmp_rootfs"
 
-	minimalLinuxRootfs []string = []string{"bin", "dev", "etc", "home", "lib", "mnt", "opt", "proc", "root", "run", "sbin", "sys", "tmp", "usr", "var", "json"}
+	minimalLinuxRootfs = []string{"bin", "dev", "etc", "home", "lib", "mnt", "opt", "proc", "root", "run", "sbin", "sys", "tmp", "usr", "var", "json"}
 )
 
 func itAssertErrNil(err error, t *testing.T) {

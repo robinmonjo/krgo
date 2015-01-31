@@ -11,10 +11,10 @@ import (
 	"github.com/docker/docker/pkg/archive"
 )
 
-const REPO_PATH string = "/tmp/git_repo"
+const REPO_PATH = "/tmp/git_repo"
 
 var (
-	branches []string = []string{
+	branches = []string{
 		"layer_0_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125",
 		"layer_1_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8126",
 		"layer_2_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8127",
