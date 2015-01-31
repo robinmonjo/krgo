@@ -74,7 +74,7 @@ func pull(c *cli.Context) {
 	}
 
 	if c.Bool("git-layering") {
-		err = session.pullLayers(imageName, imageTag, c.String("rootfs"))
+		err = session.pullRepository(imageName, imageTag, c.String("rootfs"))
 	} else {
 		err = session.pullImage(imageName, imageTag, c.String("rootfs"))
 	}

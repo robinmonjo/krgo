@@ -15,6 +15,8 @@ import (
 	"github.com/docker/docker/utils"
 )
 
+//cargo commit -r rootfs
+//commit current changes in a new properly formated branch ready for pushing
 func commitChanges(rootfs, message string) error {
 	if !isGitRepo(rootfs) {
 		return fmt.Errorf("%v not a git repository", rootfs)

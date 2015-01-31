@@ -12,13 +12,15 @@ import (
 
 const MAX_DL_CONCURRENCY = 7
 
-//download a flattened dowker image
+//cargo pull image -r rootfs
+//download a flattened docker image from the registry
 func (s *registrySession) pullImage(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, false)
 }
 
-//download an image putting each layer in a git branch "on top of each other"
-func (s *registrySession) pullLayers(imageName, imageTag, rootfsDest string) error {
+//cargo pull image -r rootfs -g
+//download a docker image from the registry putting each layer in a git branch "on top of each other"
+func (s *registrySession) pullRepository(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, true)
 }
 
