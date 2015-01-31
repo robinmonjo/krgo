@@ -9,7 +9,7 @@ import (
 	"github.com/docker/docker/registry"
 )
 
-func (s *hubSession) pushRepository(imageName, imageTag, rootfs string) error {
+func (s *registrySession) pushRepository(imageName, imageTag, rootfs string) error {
 	if !isGitRepo(rootfs) {
 		return fmt.Errorf("%v not a git repository", rootfs)
 	}
@@ -69,7 +69,7 @@ func (s *hubSession) pushRepository(imageName, imageTag, rootfs string) error {
 	return nil
 }
 
-func (s *hubSession) pushImageLayer(gitRepo *gitRepo, branch, imgID, ep string, token []string) error {
+func (s *registrySession) pushImageLayer(gitRepo *gitRepo, branch, imgID, ep string, token []string) error {
 	if _, err := gitRepo.checkout(branch); err != nil {
 		return err
 	}

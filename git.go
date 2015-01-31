@@ -211,7 +211,7 @@ func exportChanges(rootfs string, diff []byte) (archive.Archive, error) {
 }
 
 func (r *gitRepo) execInWorkTree(args ...string) ([]byte, error) {
-	args = append([]string{"--git-dir=" + r.Path + "/.git", "--work-tree=" + r.Path}, args...)
+	args = append([]string{"--git-dir=" + path.Join(r.Path, "/.git"), "--work-tree=" + r.Path}, args...)
 	return r.exec(args...)
 }
 

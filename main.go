@@ -68,13 +68,13 @@ func pull(c *cli.Context) {
 	userName, password := parseCredentials(c.String("user"))
 
 	fmt.Printf("Pulling image %v:%v ...\n", imageName, imageTag)
-	session, err := newHubSession(imageName, userName, password)
+	session, err := newregistrySession(imageName, userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if c.Bool("git-layering") {
-		err = session.pullRepository(imageName, imageTag, c.String("rootfs"))
+		err = session.pullLayers(imageName, imageTag, c.String("rootfs"))
 	} else {
 		err = session.pullImage(imageName, imageTag, c.String("rootfs"))
 	}
@@ -98,7 +98,7 @@ func push(c *cli.Context) {
 	userName, password := parseCredentials(c.String("user"))
 
 	fmt.Printf("Pushing image %v:%v ...\n", imageName, imageTag)
-	session, err := newHubSession(imageName, userName, password)
+	session, err := newregistrySession(imageName, userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}

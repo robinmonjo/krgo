@@ -13,16 +13,16 @@ import (
 const MAX_DL_CONCURRENCY = 7
 
 //download a flattened dowker image
-func (s *hubSession) pullImage(imageName, imageTag, rootfsDest string) error {
+func (s *registrySession) pullImage(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, false)
 }
 
 //download an image putting each layer in a git branch "on top of each other"
-func (s *hubSession) pullRepository(imageName, imageTag, rootfsDest string) error {
+func (s *registrySession) pullLayers(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, true)
 }
 
-func (s *hubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLayering bool) error {
+func (s *registrySession) downloadImage(imageName, imageTag, rootfsDest string, gitLayering bool) error {
 	repoData, err := s.GetRepositoryData(imageName)
 	if err != nil {
 		return err
