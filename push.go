@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
-	"strings"
 
 	"github.com/docker/docker/registry"
 )
@@ -19,10 +18,9 @@ func (s *registrySession) pushRepository(imageName, imageTag, rootfs string) err
 	if err != nil {
 		return err
 	}
-	var imageIds []string = make([]string, len(branches), len(branches))
+	var imageIds []string = make([]string, len(branches))
 	for _, br := range branches {
-		idx, _ := exportLayerNumberFromBranch(br)
-		imageIds[idx] = strings.Split(br, "_")[2] //branch format layer_N_imageId
+		imageIds[br.number()] = br.imageID()
 	}
 
 	fmt.Printf("Pushing %d layers:\n", len(imageIds))
@@ -69,8 +67,8 @@ func (s *registrySession) pushRepository(imageName, imageTag, rootfs string) err
 	return nil
 }
 
-func (s *registrySession) pushImageLayer(gitRepo *gitRepo, branch, imgID, ep string, token []string) error {
-	if _, err := gitRepo.checkout(branch); err != nil {
+func (s *registrySession) pushImageLayer(gitRepo *gitRepo, br branch, imgID, ep string, token []string) error {
+	if _, err := gitRepo.checkout(br); err != nil {
 		return err
 	}
 
@@ -88,7 +86,7 @@ func (s *registrySession) pushImageLayer(gitRepo *gitRepo, branch, imgID, ep str
 		return err
 	}
 
-	layerData, err := gitRepo.exportChangeSet(branch)
+	layerData, err := gitRepo.exportChangeSet(br)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/docker/docker/pkg/archive"
@@ -60,15 +61,12 @@ func (r *gitRepo) userConfig(key string) ([]byte, error) {
 	return r.exec("config", "user."+key)
 }
 
-func (r *gitRepo) checkout(branch string) ([]byte, error) {
-	return r.execInWorkTree("checkout", branch)
+func (r *gitRepo) checkout(br branch) ([]byte, error) {
+	return r.execInWorkTree("checkout", br.string())
 }
 
-func (r *gitRepo) checkoutB(branch string) ([]byte, error) {
-	if err := validateBranch(branch); err != nil {
-		return nil, err
-	}
-	return r.execInWorkTree("checkout", "-b", branch)
+func (r *gitRepo) checkoutB(br branch) ([]byte, error) {
+	return r.execInWorkTree("checkout", "-b", br.string())
 }
 
 func (r *gitRepo) addAllAndCommit(message string) ([]byte, error) {
@@ -88,21 +86,22 @@ func (r *gitRepo) commit(message string) ([]byte, error) {
 	return r.execInWorkTree("commit", "-m", message)
 }
 
-func (r *gitRepo) branch() ([]string, error) {
+func (r *gitRepo) branch() ([]branch, error) {
 	b, err := r.execInWorkTree("branch")
 	if err != nil {
 		return nil, err
 	}
-	brs := strings.Split(string(b), "\n")
-	for i, br := range brs {
-		brs[i] = strings.TrimLeft(br, " *")
+	rawBrs := strings.Split(string(b), "\n")
+	brs := make([]branch, len(rawBrs))
+	for i, br := range rawBrs {
+		brs[i] = branch(strings.TrimLeft(br, " *"))
 	}
 	return brs[:len(brs)-1], nil //remove the last empty line
 }
 
-func (r *gitRepo) currentBranch() (string, error) {
+func (r *gitRepo) currentBranch() (branch, error) {
 	b, err := r.execInWorkTree("symbolic-ref", "--short", "HEAD")
-	return strings.TrimSuffix(string(b), "\n"), err
+	return branch(strings.TrimSuffix(string(b), "\n")), err
 }
 
 func (r *gitRepo) countBranch() (int, error) {
@@ -117,8 +116,8 @@ func (r *gitRepo) diffCached() ([]byte, error) {
 	return r.execInWorkTree("diff", "--cached", "--name-status")
 }
 
-func (r *gitRepo) diff(br1, br2 string) ([]byte, error) {
-	return r.execInWorkTree("diff", br1+".."+br2, "--name-status")
+func (r *gitRepo) diff(br1, br2 branch) ([]byte, error) {
+	return r.execInWorkTree("diff", br1.string()+".."+br2.string(), "--name-status")
 }
 
 //export every uncommited changes in the current branch
@@ -133,13 +132,13 @@ func (r *gitRepo) exportUncommitedChangeSet() (archive.Archive, error) {
 }
 
 //assumes output of git branch returns branches ordered
-func (r *gitRepo) exportChangeSet(branch string) (archive.Archive, error) {
+func (r *gitRepo) exportChangeSet(br branch) (archive.Archive, error) {
 	currentBr, err := r.currentBranch()
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = r.checkout(branch)
+	_, err = r.checkout(br)
 	if err != nil {
 		return nil, err
 	}
@@ -153,12 +152,7 @@ func (r *gitRepo) exportChangeSet(branch string) (archive.Archive, error) {
 		return nil, err
 	}
 
-	idx, err := exportLayerNumberFromBranch(branch)
-	if err != nil {
-		return nil, err
-	}
-
-	switch idx {
+	switch br.number() {
 	case 0:
 		changes, err := archive.ChangesDirs(r.Path, "")
 		if err != nil {
@@ -172,8 +166,8 @@ func (r *gitRepo) exportChangeSet(branch string) (archive.Archive, error) {
 		}
 		return archive.ExportChanges(r.Path, curatedChanges)
 	default:
-		parentBr := branches[idx-1]
-		diff, _ := r.diff(parentBr, branch)
+		parentBr := branches[br.number()-1]
+		diff, _ := r.diff(parentBr, br)
 		return exportChanges(r.Path, diff)
 	}
 }
@@ -226,4 +220,24 @@ func (r *gitRepo) exec(args ...string) ([]byte, error) {
 		return out, fmt.Errorf("%v (%v)", string(out), err)
 	}
 	return out, nil
+}
+
+//branch specific type for cargo
+type branch string
+
+func newBranch(n int, ID string) branch {
+	return branch("layer_" + strconv.Itoa(n) + "_" + ID)
+}
+
+func (br branch) number() int {
+	n, _ := strconv.ParseInt(strings.Split(string(br), "_")[1], 10, 64)
+	return int(n)
+}
+
+func (br branch) imageID() string {
+	return strings.Split(string(br), "_")[2]
+}
+
+func (br branch) string() string {
+	return string(br)
 }

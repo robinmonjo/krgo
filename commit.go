@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"strconv"
 	"time"
 
 	"github.com/docker/docker/image"
@@ -69,8 +68,8 @@ func commitChanges(rootfs, message string) error {
 	}
 
 	//commit the changes in a new branch
-	brNumber, _ := gitRepo.countBranch()
-	br := "layer_" + strconv.Itoa(brNumber) + "_" + image.ID
+	n, _ := gitRepo.countBranch()
+	br := newBranch(n, image.ID)
 	if _, err = gitRepo.checkoutB(br); err != nil {
 		return err
 	}

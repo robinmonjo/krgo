@@ -26,17 +26,13 @@ func newregistrySession(imageName, userName, password string) (*registrySession,
 		return nil, err
 	}
 
-	authConfig := &registry.AuthConfig{}
-	if userName != "" && password != "" {
-		authConfig.Username = userName
-		authConfig.Password = password
-	}
+	authConfig := &registry.AuthConfig{Username: userName, Password: password}
 
 	var metaHeaders map[string][]string
 
 	session, err := registry.NewSession(authConfig, registry.HTTPRequestFactory(metaHeaders), endpoint, true)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create docker hub session: %v", err)
+		return nil, fmt.Errorf("failed to create registry session: %v", err)
 	}
 
 	return &registrySession{*session}, nil

@@ -79,19 +79,19 @@ func (s *registrySession) downloadImage(imageName, imageTag, rootfsDest string, 
 	for i := len(imageHistory) - 1; i >= 0; i-- {
 
 		//for each layers
-		layerId := imageHistory[i]
+		layerID := imageHistory[i]
 
-		fmt.Printf("\t%v ... ", layerId)
+		fmt.Printf("\t%v ... ", layerID)
 
 		if gitLayering {
 			//create a git branch
-			if _, err = gitRepo.checkoutB("layer_" + strconv.Itoa(cpt) + "_" + layerId); err != nil {
+			if _, err = gitRepo.checkoutB(newBranch(cpt, layerID)); err != nil {
 				return err
 			}
 		}
 
 		//download and untar the layer
-		job := queue.CompletedJobWithID(layerId).(*PullingJob)
+		job := queue.CompletedJobWithID(layerID).(*PullingJob)
 		err = archive.ApplyLayer(rootfsDest, job.LayerData)
 		job.LayerData.Close()
 		if err != nil {
@@ -104,7 +104,7 @@ func (s *registrySession) downloadImage(imageName, imageTag, rootfsDest string, 
 		}
 
 		if gitLayering {
-			_, err = gitRepo.addAllAndCommit("adding layer " + strconv.Itoa(cpt))
+			_, err = gitRepo.addAllAndCommit("adding layer " + layerID)
 			if err != nil {
 				return err
 			}

@@ -64,9 +64,9 @@ func TestPullImageWithGit(t *testing.T) {
 		"layer_3_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125",
 	}
 
-	for i, branch := range branches {
-		if branch != expectedbranches[i] {
-			t.Fatal("Expected branch", expectedbranches[i], "got", branch)
+	for i, br := range branches {
+		if br.string() != expectedbranches[i] {
+			t.Fatal("Expected branch", expectedbranches[i], "got", br)
 		}
 	}
 	fmt.Printf("OK\n")

@@ -14,11 +14,11 @@ import (
 const REPO_PATH = "/tmp/git_repo"
 
 var (
-	branches = []string{
-		"layer_0_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125",
-		"layer_1_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8126",
-		"layer_2_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8127",
-		"layer_3_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8128",
+	branches = []branch{
+		newBranch(0, "4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125"),
+		newBranch(1, "4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8126"),
+		newBranch(2, "4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8127"),
+		newBranch(3, "4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8128"),
 	}
 )
 
@@ -91,8 +91,8 @@ func exportUncommitedChangeSet(r *gitRepo, expectedFiles, unexpectedFiles []stri
 	checkTarCorrect(tar, expectedFiles, unexpectedFiles, t)
 }
 
-func exportChangeSet(r *gitRepo, branch string, expectedFiles, unexpectedFiles []string, t *testing.T) {
-	tar, err := r.exportChangeSet(branch)
+func exportChangeSet(r *gitRepo, br branch, expectedFiles, unexpectedFiles []string, t *testing.T) {
+	tar, err := r.exportChangeSet(br)
 	gtAssertErrNil(err, t)
 	defer tar.Close()
 	checkTarCorrect(tar, expectedFiles, unexpectedFiles, t)
