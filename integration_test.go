@@ -137,7 +137,7 @@ func pushImage(imageNameTag, credentials string, t *testing.T) {
 }
 
 func commitImage(message string, t *testing.T) {
-	cmd := exec.Command(cargoBinary, "commit", "-r", rootfs, "-m", message)
+	cmd := exec.Command(cargoBinary, "ci", "-r", rootfs, "-m", message)
 	err := cmd.Start()
 	itAssertErrNil(err, t)
 	err = cmd.Wait()

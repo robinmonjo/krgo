@@ -44,7 +44,7 @@ var (
 	}
 
 	commitCmd = cli.Command{
-		Name:        "commit",
+		Name:        "commit, ci",
 		Usage:       "commit changes to an image pulled with -g",
 		Description: "commit [-r rootfs] -m message",
 		Action:      commit,
@@ -62,7 +62,7 @@ func init() {
 func main() {
 	app := cli.NewApp()
 	app.Name = "cargo"
-	app.Version = VERSION
+	app.Version = "cargo " + VERSION + " (docker " + DOCKER_VERSION + ")"
 	app.Usage = "docker hub without docker"
 	app.Author = "Robin Monjo"
 	app.Email = "robinmonjo@gmail.com"
