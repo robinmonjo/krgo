@@ -40,16 +40,14 @@ func newGitRepo(path string) (*gitRepo, error) {
 
 	email, _ := r.userConfig("email")
 	if len(email) == 0 {
-		_, err = r.execInWorkTree("config", "user.email", "fake@cargo.com")
-		if err != nil {
+		if _, err := r.execInWorkTree("config", "user.email", "fake@cargo.com"); err != nil {
 			return nil, err
 		}
 	}
 
 	name, _ := r.userConfig("name")
 	if len(name) == 0 {
-		_, err = r.execInWorkTree("config", "user.name", "cargo")
-		if err != nil {
+		if _, err := r.execInWorkTree("config", "user.name", "cargo"); err != nil {
 			return nil, err
 		}
 	}
@@ -131,7 +129,6 @@ func (r *gitRepo) exportUncommitedChangeSet() (archive.Archive, error) {
 	return exportChanges(r.Path, diff)
 }
 
-//assumes output of git branch returns branches ordered
 func (r *gitRepo) exportChangeSet(br branch) (archive.Archive, error) {
 	currentBr, err := r.currentBranch()
 	if err != nil {

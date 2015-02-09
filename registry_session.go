@@ -16,7 +16,7 @@ type registrySession struct {
 }
 
 //return a registrySession associated with the repository contained in imageName
-func newregistrySession(imageName, userName, password string) (*registrySession, error) {
+func newRegistrySession(imageName, userName, password string) (*registrySession, error) {
 	hostname, _, err := registry.ResolveRepositoryName(imageName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find repository for image %v: %v", imageName, err)
