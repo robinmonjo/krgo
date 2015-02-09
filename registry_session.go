@@ -3,13 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/docker/docker/dockerversion"
 	"github.com/docker/docker/registry"
 )
-
-func init() {
-	dockerversion.VERSION = "1.4.1" //needed otherwise error 500 on push
-}
 
 type registrySession struct {
 	registry.Session

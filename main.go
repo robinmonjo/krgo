@@ -6,9 +6,13 @@ import (
 	"os"
 
 	"github.com/codegangsta/cli"
+	"github.com/docker/docker/dockerversion"
 )
 
-const VERSION = "1.4.1"
+const (
+	VERSION        = "1.4.1"
+	DOCKER_VERSION = "1.5.0"
+)
 
 var (
 	//shared flags
@@ -50,6 +54,10 @@ var (
 		},
 	}
 )
+
+func init() {
+	dockerversion.VERSION = DOCKER_VERSION //needed otherwise error 500 on push
+}
 
 func main() {
 	app := cli.NewApp()
