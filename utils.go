@@ -30,6 +30,11 @@ func parseImageNameTag(imageNameTag string) (imageName, imageTag string) {
 	return
 }
 
+//return whether imageName is an official image or not
+func isOfficialImage(imageName string) bool {
+	return strings.HasPrefix(imageName, "library/")
+}
+
 //fileExists reports whether the named file or directory exists
 func fileExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {

@@ -39,7 +39,7 @@ func (s *registrySession) pushRepository(imageName, imageTag, rootfs string) err
 	//make sure existing branches are pushed
 	for i, imageId := range imageIds {
 		fmt.Printf("\t%v ... ", imageId)
-		if s.LookupRemoteImage(imageId, ep, repoData.Tokens) {
+		if err := s.LookupRemoteImage(imageId, ep, repoData.Tokens); err == nil {
 			fmt.Printf("done (already pushed)\n")
 		} else {
 			err = s.pushImageLayer(gitRepo, branches[i], imageId, ep, repoData.Tokens)

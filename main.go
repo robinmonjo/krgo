@@ -76,7 +76,7 @@ func pull(c *cli.Context) {
 	userName, password := parseCredentials(c.String("user"))
 
 	fmt.Printf("Pulling image %v:%v ...\n", imageName, imageTag)
-	session, err := newRegistrySession(imageName, userName, password)
+	session, err := newRegistrySession(userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func push(c *cli.Context) {
 	userName, password := parseCredentials(c.String("user"))
 
 	fmt.Printf("Pushing image %v:%v ...\n", imageName, imageTag)
-	session, err := newRegistrySession(imageName, userName, password)
+	session, err := newRegistrySession(userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}

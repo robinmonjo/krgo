@@ -81,6 +81,13 @@ func (r *gitRepo) add(file string) ([]byte, error) {
 }
 
 func (r *gitRepo) commit(message string) ([]byte, error) {
+	out, err := r.execInWorkTree("status", "--porcelain")
+	if err != nil {
+		return out, err
+	}
+	if len(out) == 0 {
+		return nil, nil //nothing to commit
+	}
 	return r.execInWorkTree("commit", "-m", message)
 }
 
