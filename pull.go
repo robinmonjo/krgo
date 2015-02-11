@@ -208,9 +208,9 @@ func (s *registrySession) downloadImageV2(imageName, imageTag, rootfsDest string
 	return nil
 }
 
-//Layers are now addressed by content, i.e identified by their tarsum
-//v1 registry required to push the layer json representation, that made a lot of "duplicated layer"
-//So images manifests contain duplicated layers, we can clean them up
+//Layers are now addressed by content, i.e identified by their tarsum (https://github.com/docker/docker-registry/issues/612)
+//v1 registry required to push the layer json, that made a lot of "duplicated layer"
+//So images manifests contain duplicated layers (layers with same content and then same tarsum), we can clean them up
 func cleanupManifest(manifest *registry.ManifestData) {
 	found := make(map[string]bool)
 	cleanFSLayers := []*registry.FSLayer{}
