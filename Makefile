@@ -18,7 +18,7 @@ release:
 	rm release/cargo
 
 clean:
-	rm -rf ./cargo ./rootfs ./release
+	rm -rf ./cargo ./release ./vendor/pkg/*
 
 vendor:
 	sh vendor.sh

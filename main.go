@@ -29,6 +29,7 @@ var (
 			cli.BoolFlag{Name: "g, git-layering", Usage: "use git layering (needed to push afteward)"},
 			userFlag,
 			rootfsFlag,
+			cli.BoolFlag{Name: "v2", Usage: "use docker V2 registry (push not available yet for images pulled with this flag)"},
 		},
 	}
 
@@ -82,9 +83,17 @@ func pull(c *cli.Context) {
 	}
 
 	if c.Bool("git-layering") {
-		err = session.pullRepository(imageName, imageTag, c.String("rootfs"))
+		if c.Bool("v2") {
+			err = session.pullRepositoryV2(imageName, imageTag, c.String("rootfs"))
+		} else {
+			err = session.pullRepository(imageName, imageTag, c.String("rootfs"))
+		}
 	} else {
-		err = session.pullImage(imageName, imageTag, c.String("rootfs"))
+		if c.Bool("v2") {
+			err = session.pullImageV2(imageName, imageTag, c.String("rootfs"))
+		} else {
+			err = session.pullImage(imageName, imageTag, c.String("rootfs"))
+		}
 	}
 	if err != nil {
 		log.Fatal(err)
@@ -115,5 +124,5 @@ func push(c *cli.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Done: https://registry.hub.docker.com/u/%v\n", imageName)
+	fmt.Printf("Done: https://registry.hub.docker.com/%s/%s\n", userName, imageName)
 }

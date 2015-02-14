@@ -18,6 +18,8 @@ const (
 	DIFF_DELETED  = "D"
 )
 
+var ErrNoChange = fmt.Errorf("no changes to extract")
+
 type gitRepo struct {
 	Path string
 }
@@ -107,6 +109,15 @@ func (r *gitRepo) branch() ([]branch, error) {
 func (r *gitRepo) currentBranch() (branch, error) {
 	b, err := r.execInWorkTree("symbolic-ref", "--short", "HEAD")
 	return branch(strings.TrimSuffix(string(b), "\n")), err
+}
+
+func (r *gitRepo) describeBranch(br branch, descr string) error {
+	_, err := r.execInWorkTree("config", "branch."+br.string()+".description", descr)
+	return err
+}
+
+func (r *gitRepo) branchDescription(br branch) ([]byte, error) {
+	return r.execInWorkTree("config", "branch."+br.string()+".description")
 }
 
 func (r *gitRepo) countBranch() (int, error) {
@@ -203,7 +214,7 @@ func exportChanges(rootfs string, diff []byte) (archive.Archive, error) {
 		}
 	}
 	if len(changes) == 0 {
-		return nil, fmt.Errorf("no changes to extract")
+		return nil, ErrNoChange
 	}
 	return archive.ExportChanges(rootfs, changes)
 }

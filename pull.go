@@ -16,24 +16,37 @@ import (
 const MAX_DL_CONCURRENCY = 7
 
 //cargo pull image -r rootfs
-//download a flattened docker image from the registry
+//download a flattened docker image from the V1 registry
 func (s *registrySession) pullImage(imageName, imageTag, rootfsDest string) error {
-	return s.downloadImage(imageName, imageTag, rootfsDest, false)
+	return s.downloadImage(imageName, imageTag, rootfsDest, false, false)
+}
+
+//cargo pull image -r rootfs -v2
+//download a flattened docker image from the V2 registry
+func (s *registrySession) pullImageV2(imageName, imageTag, rootfsDest string) error {
+	return s.downloadImage(imageName, imageTag, rootfsDest, false, true)
 }
 
 //cargo pull image -r rootfs -g
-//download a docker image from the registry putting each layer in a git branch "on top of each other"
+//download a docker image from the V1 registry putting each layer in a git branch "on top of each other"
 func (s *registrySession) pullRepository(imageName, imageTag, rootfsDest string) error {
-	return s.downloadImage(imageName, imageTag, rootfsDest, true)
+	return s.downloadImage(imageName, imageTag, rootfsDest, true, false)
 }
 
-func (s *registrySession) downloadImage(imageName, imageTag, rootfsDest string, gitLayering bool) error {
-	if isOfficialImage(imageName) {
+//cargo pull image -r rootfs -g -v2
+//download a docker image from the V1 registry putting each layer in a git branch "on top of each other"
+func (s *registrySession) pullRepositoryV2(imageName, imageTag, rootfsDest string) error {
+	return s.downloadImage(imageName, imageTag, rootfsDest, true, true)
+}
+
+func (s *registrySession) downloadImage(imageName, imageTag, rootfsDest string, gitLayering, useV2Reg bool) error {
+	if useV2Reg {
 		return s.downloadImageV2(imageName, imageTag, rootfsDest, gitLayering)
 	}
 	return s.downloadImageV1(imageName, imageTag, rootfsDest, gitLayering)
 }
 
+//pulling using V1 registry
 func (s *registrySession) downloadImageV1(imageName, imageTag, rootfsDest string, gitLayering bool) error {
 	repoData, err := s.GetRepositoryData(imageName)
 	if err != nil {
@@ -127,6 +140,7 @@ func (s *registrySession) downloadImageV1(imageName, imageTag, rootfsDest string
 	return nil
 }
 
+//pulling using V2 registry (much nicer !)
 func (s *registrySession) downloadImageV2(imageName, imageTag, rootfsDest string, gitLayering bool) error {
 	endpoint, err := s.V2RegistryEndpoint(s.indexInfo)
 	if err != nil {
@@ -176,11 +190,17 @@ func (s *registrySession) downloadImageV2(imageName, imageTag, rootfsDest string
 	cpt := 0
 	for i := len(manifest.FSLayers) - 1; i >= 0; i-- {
 		sumStr := manifest.FSLayers[i].BlobSum
+		sumType := strings.Split(sumStr, ":")[0]
 		checksum := strings.Split(sumStr, ":")[1]
 
 		if gitLayering {
 			//create a git branch
-			if _, err = gitRepo.checkoutB(newBranch(cpt, checksum)); err != nil {
+			br := newBranch(cpt, checksum)
+			if _, err = gitRepo.checkoutB(br); err != nil {
+				return err
+			}
+			//set tarsum info into branch description
+			if err := gitRepo.describeBranch(br, sumType); err != nil {
 				return err
 			}
 		}
@@ -201,7 +221,7 @@ func (s *registrySession) downloadImageV2(imageName, imageTag, rootfsDest string
 		}
 
 		verified := strings.EqualFold(finalChecksum, sumStr)
-		fmt.Printf("done (layer verified: %v)\n", verified)
+		fmt.Printf("done (tarsum verified: %v)\n", verified)
 
 		cpt++
 	}
