@@ -6,10 +6,6 @@ import (
 	"github.com/docker/docker/registry"
 )
 
-const (
-	INDEXNAME = "docker.io"
-)
-
 type registrySession struct {
 	registry.Session
 	indexInfo *registry.IndexInfo
@@ -19,7 +15,7 @@ type registrySession struct {
 func newRegistrySession(userName, password string) (*registrySession, error) {
 	//IndexInfo
 	indexInfo := &registry.IndexInfo{
-		Name:     INDEXNAME,
+		Name:     registry.INDEXNAME,
 		Mirrors:  []string{},
 		Secure:   true,
 		Official: true,

@@ -1,6 +1,6 @@
-#krgo
+> krgo was formerly [dlrootfs](https://github.com/robinmonjo/dlrootfs) and cargo but has been renamed because of this [issue]()
 
-> krgo was formerly [dlrootfs](https://github.com/robinmonjo/dlrootfs)
+#krgo
 
 docker hub without docker. `krgo` is a command line tool to pull and push docker images from/to the docker hub.
 `krgo` brings the docker hub content and delivery capabilities to any container engine.
@@ -48,7 +48,7 @@ COMMANDS:
 
 ###krgo pull
 
-`krgo pull image [-r rootfs] [-u user] [-g]`
+`krgo pull image [-r rootfs] [-u user] [-g] [-v2]`
 
 Pull `image` into `rootfs` directory:
 - `-u` flag allows you to specify your docker hub credentials: `username:password`
@@ -62,6 +62,8 @@ the layer_3 branch contains the full image. You can then use it as is.
 
 The `-g` flag brings the power of git to container images (versionning, inspecting diffs ...). But more importantly, it will allow to
 push image modifications to the docker hub (see `krgo push`)
+
+- `-v2` flag makes `krgo` download the image using docker [v2 registry](https://github.com/docker/docker-registry/issues/612). Because everything is not yet production ready, images pulled with the `-v2` flag won't be pushable to the docker hub
 
 **Examples**:
 - `krgo pull debian` #library/debian:latest
@@ -101,6 +103,15 @@ Push the image in the `rootfs` directory onto the docker hub.
 **Examples:**
 - `krgo push username/debian:krgo -u $DHUB_CREDS`
 - `krgo push username/busybox -r busybox -u $DHUB_CREDS`
+
+##Notes on docker v2 registry
+
+docker 1.5.0 pulls official images (library/*) from the v2 registry. Push are still made using the v1 registry. v2 registry brings a lot of [changes](https://github.com/docker/docker-registry/issues/612), the most noticeable ones for `krgo` are:
+- images are now addressed by content (IDs are tarsum calculation)
+- images are described in a manifest
+- images metadata are no more stored in a json file at the root of the file system
+
+A lot of layers in v1 where created only because the json metadata file changed. Since this file is no more distributed, some (all ?) images have "dulpicated empty layers". `krgo` clean the manifest to download only what's needed.
 
 
 ##Hacking on krgo
