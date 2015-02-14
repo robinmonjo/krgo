@@ -104,6 +104,10 @@ Push the image in the `rootfs` directory onto the docker hub.
 - `krgo push username/debian:krgo -u $DHUB_CREDS`
 - `krgo push username/busybox -r busybox -u $DHUB_CREDS`
 
+##Dependencies
+
+If you plan to use `krgo` to push images, you will need git >= 1.8
+
 ##Notes on docker v2 registry
 
 docker 1.5.0 pulls official images (library/*) from the v2 registry. Push are still made using the v1 registry. v2 registry brings a lot of [changes](https://github.com/docker/docker-registry/issues/612), the most noticeable ones for `krgo` are:

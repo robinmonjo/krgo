@@ -10,7 +10,6 @@ import (
 
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/archive"
-	//"github.com/docker/docker/pkg/tarsum"
 	"github.com/docker/docker/utils"
 )
 
@@ -35,7 +34,6 @@ func commitChanges(rootfs, message string) error {
 	}
 
 	//fill new infos
-	//image.Checksum = layerTarSum.Sum(nil)
 	image.Parent = image.ID
 	image.ID = utils.GenerateRandomID()
 	image.Created = time.Now()
@@ -73,7 +71,7 @@ func commitChanges(rootfs, message string) error {
 	}
 
 	fmt.Printf("Changes commited in %v\n", br)
-	fmt.Printf("Image ID: %v\nParent: %v\nChecksum: %v\nLayer size: %v\n", image.ID, image.Parent /*image.Checksum*/, "lol", image.Size)
+	fmt.Printf("Image ID: %v\nParent: %v\nChecksum: %v\nLayer size: %v\n", image.ID, image.Parent, image.Size)
 
 	return nil
 }
