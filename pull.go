@@ -105,8 +105,6 @@ func (s *registrySession) downloadImageV1(imageName, imageTag, rootfsDest string
 		//for each layers
 		layerID := imageHistory[i]
 
-		fmt.Printf("\t%v ... ", layerID)
-
 		if gitLayering {
 			//create a git branch
 			if _, err = gitRepo.checkoutB(newBranch(cpt, layerID)); err != nil {
@@ -116,6 +114,7 @@ func (s *registrySession) downloadImageV1(imageName, imageTag, rootfsDest string
 
 		//download and untar the layer
 		job := queue.CompletedJobWithID(layerID).(*PullingJob)
+		fmt.Printf("\t%s (%.2f MB) ... ", layerID, float64(job.LayerSize)/1000000.0)
 		_, err = archive.ApplyLayer(rootfsDest, job.LayerData)
 		job.LayerData.Close()
 		if err != nil {
@@ -205,8 +204,8 @@ func (s *registrySession) downloadImageV2(imageName, imageTag, rootfsDest string
 			}
 		}
 
-		fmt.Printf("\t%s ... ", checksum)
 		job := queue.CompletedJobWithID(sumStr).(*PullingV2Job)
+		fmt.Printf("\t%s (%.2f MB) ... ", checksum, float64(job.LayerSize)/1000000.0)
 		_, err = archive.ApplyLayer(rootfsDest, ioutil.NopCloser(job.LayerTarSumReader))
 		if err != nil {
 			return err
