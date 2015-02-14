@@ -15,25 +15,25 @@ import (
 
 const MAX_DL_CONCURRENCY = 7
 
-//cargo pull image -r rootfs
+//krgo pull image -r rootfs
 //download a flattened docker image from the V1 registry
 func (s *registrySession) pullImage(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, false, false)
 }
 
-//cargo pull image -r rootfs -v2
+//krgo pull image -r rootfs -v2
 //download a flattened docker image from the V2 registry
 func (s *registrySession) pullImageV2(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, false, true)
 }
 
-//cargo pull image -r rootfs -g
+//krgo pull image -r rootfs -g
 //download a docker image from the V1 registry putting each layer in a git branch "on top of each other"
 func (s *registrySession) pullRepository(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, true, false)
 }
 
-//cargo pull image -r rootfs -g -v2
+//krgo pull image -r rootfs -g -v2
 //download a docker image from the V1 registry putting each layer in a git branch "on top of each other"
 func (s *registrySession) pullRepositoryV2(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, true, true)

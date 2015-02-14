@@ -2,7 +2,7 @@
 # Container specific configuration
 #CHANGE ME
 lxc.rootfs = /root/ubuntu
-lxc.utsname = cargo-demo
+lxc.utsname = krgo-demo
 lxc.arch = amd64
 
 # Network configuration

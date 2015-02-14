@@ -62,8 +62,8 @@ func init() {
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "cargo"
-	app.Version = "cargo " + VERSION + " (docker " + DOCKER_VERSION + ")"
+	app.Name = "krgo"
+	app.Version = "krgo " + VERSION + " (docker " + DOCKER_VERSION + ")"
 	app.Usage = "docker hub without docker"
 	app.Author = "Robin Monjo"
 	app.Email = "robinmonjo@gmail.com"

@@ -42,14 +42,14 @@ func newGitRepo(path string) (*gitRepo, error) {
 
 	email, _ := r.userConfig("email")
 	if len(email) == 0 {
-		if _, err := r.execInWorkTree("config", "user.email", "fake@cargo.com"); err != nil {
+		if _, err := r.execInWorkTree("config", "user.email", "fake@krgo.com"); err != nil {
 			return nil, err
 		}
 	}
 
 	name, _ := r.userConfig("name")
 	if len(name) == 0 {
-		if _, err := r.execInWorkTree("config", "user.name", "cargo"); err != nil {
+		if _, err := r.execInWorkTree("config", "user.name", "krgo"); err != nil {
 			return nil, err
 		}
 	}
@@ -237,7 +237,7 @@ func (r *gitRepo) exec(args ...string) ([]byte, error) {
 	return out, nil
 }
 
-//branch specific type for cargo
+//branch specific type for krgo
 type branch string
 
 func newBranch(n int, ID string) branch {

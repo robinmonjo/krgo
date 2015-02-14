@@ -14,7 +14,7 @@ import (
 	"github.com/docker/docker/utils"
 )
 
-//cargo commit -r rootfs
+//krgo commit -r rootfs
 //commit current changes in a new properly formated branch ready for pushing
 func commitChanges(rootfs, message string) error {
 	if !isGitRepo(rootfs) {

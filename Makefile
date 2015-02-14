@@ -13,12 +13,12 @@ test: vendor
 
 release:
 	mkdir -p release
-	GOPATH=$(GOPATH) GOOS=linux go build -o release/cargo
-	cd release && tar -zcf cargo-v$(VERSION)_$(HARDWARE).tgz cargo
-	rm release/cargo
+	GOPATH=$(GOPATH) GOOS=linux go build -o release/krgo
+	cd release && tar -zcf krgo-v$(VERSION)_$(HARDWARE).tgz krgo
+	rm release/krgo
 
 clean:
-	rm -rf ./cargo ./release ./vendor/pkg/*
+	rm -rf ./krgo ./release ./vendor/pkg/*
 
 vendor:
 	sh vendor.sh

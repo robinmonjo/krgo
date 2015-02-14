@@ -13,7 +13,7 @@ import (
 const CREDS_ENV string = "DHUB_CREDS"
 
 var (
-	cargoBinary  = "cargo"
+	krgoBinary   = "krgo"
 	testImages   = []string{"busybox", "progrium/busybox"}
 	privateImage = "robinmonjo/busybox"
 	gitImage     = "busybox:latest"
@@ -83,7 +83,7 @@ func TestPushImage(t *testing.T) {
 
 	timestamp := time.Now().Unix()
 	timestampStr := strconv.FormatInt(timestamp, 10)
-	newImageNameTag := "robinmonjo/cargo_bb_" + timestampStr + ":testing"
+	newImageNameTag := "robinmonjo/krgo_bb_" + timestampStr + ":testing"
 
 	fmt.Printf("Testing push image %v ... ", newImageNameTag)
 	//make some modifications on the image
@@ -112,7 +112,7 @@ func pullImage(imageNameTag, credentials string, gitLayering bool, t *testing.T,
 		args = append(args, "-g")
 	}
 
-	cmd := exec.Command(cargoBinary, args...)
+	cmd := exec.Command(krgoBinary, args...)
 	err := cmd.Start()
 	itAssertErrNil(err, t)
 
@@ -128,7 +128,7 @@ func pullImage(imageNameTag, credentials string, gitLayering bool, t *testing.T,
 }
 
 func pushImage(imageNameTag, credentials string, t *testing.T) {
-	cmd := exec.Command(cargoBinary, "push", imageNameTag, "-r", rootfs, "-u", credentials)
+	cmd := exec.Command(krgoBinary, "push", imageNameTag, "-r", rootfs, "-u", credentials)
 	err := cmd.Start()
 	itAssertErrNil(err, t)
 	err = cmd.Wait()
@@ -136,7 +136,7 @@ func pushImage(imageNameTag, credentials string, t *testing.T) {
 }
 
 func commitImage(message string, t *testing.T) {
-	cmd := exec.Command(cargoBinary, "commit", "-r", rootfs, "-m", message)
+	cmd := exec.Command(krgoBinary, "commit", "-r", rootfs, "-m", message)
 	err := cmd.Start()
 	itAssertErrNil(err, t)
 	err = cmd.Wait()
