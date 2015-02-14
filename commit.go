@@ -34,11 +34,6 @@ func commitChanges(rootfs, message string) error {
 		return err
 	}
 
-	//	layerTarSum, err := tarsum.NewTarSum(layerData, true, tarsum.VersionDev)
-	//	if err != nil {
-	//		return err
-	//	}
-
 	//fill new infos
 	//image.Checksum = layerTarSum.Sum(nil)
 	image.Parent = image.ID

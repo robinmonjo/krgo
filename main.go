@@ -23,7 +23,7 @@ var (
 	pullCmd = cli.Command{
 		Name:        "pull",
 		Usage:       "pull an image",
-		Description: "pull image [-r rootfs] [-u user] [-g]",
+		Description: "pull image [-r rootfs] [-u user] [-g] [-v2]",
 		Action:      pull,
 		Flags: []cli.Flag{
 			cli.BoolFlag{Name: "g, git-layering", Usage: "use git layering (needed to push afteward)"},
