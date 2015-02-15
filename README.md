@@ -22,7 +22,7 @@ Using `krgo`, non docker users would be able to pull and share linux images usin
 ##Installation
 
 ````bash
-curl -sL https://github.com/robinmonjo/krgo/releases/download/v1.5.0/krgo-v1.4.1_x86_64.tgz | tar -C /usr/local/bin -zxf -
+curl -sL https://github.com/robinmonjo/krgo/releases/download/v1.5.0/krgo-v1.5.0_x86_64.tgz | tar -C /usr/local/bin -zxf -
 ````
 
 Provided binary is linux only but `krgo` may be used on OSX and (probably) Windows too.
@@ -59,7 +59,7 @@ Pull `image` into `rootfs` directory:
 - `-g` flag download the image into a git repository. Each branch contains a layer
 of the image. This is the resulting rootfs of `krgo pull busybox -g`:
 
-![Alt text](https://dl.dropboxusercontent.com/u/6543817/krgo-readme/krgo_br.png)
+![Alt text](https://dl.dropboxusercontent.com/u/6543817/cargo-readme/cargo_br.png)
 
 Branches are named `layer_<layer_index>_<layer_id>`. layer_n is a `checkout -b` from layer_n-1, so
 the layer_3 branch contains the full image. You can then use it as is.
