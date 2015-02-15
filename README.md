@@ -22,7 +22,7 @@ Using `krgo`, non docker users would be able to pull and share linux images usin
 ##Installation
 
 ````bash
-curl -sL https://github.com/robinmonjo/krgo/releases/download/v1.4.1/krgo-v1.4.1_x86_64.tgz | tar -C /usr/local/bin -zxf -
+curl -sL https://github.com/robinmonjo/krgo/releases/download/v1.5.0/krgo-v1.4.1_x86_64.tgz | tar -C /usr/local/bin -zxf -
 ````
 
 Provided binary is linux only but `krgo` may be used on OSX and (probably) Windows too.
@@ -37,13 +37,17 @@ USAGE:
    krgo [global options] command [command options] [arguments...]
 
 VERSION:
-   1.4.0
+   krgo 1.5.0 (docker 1.5.0)
 
 COMMANDS:
    pull		pull an image
    push		push an image
    commit	commit changes to an image pulled with -g
    help, h	Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --help, -h		show help
+   --version, -v	print the version
 ````
 
 ###krgo pull
@@ -88,7 +92,6 @@ $> krgo commit -m "adding new user"
 Changes commited in layer_4_804c37249306321b90bbfa07d7cfe02d5f3d056971eb069d7bc37647de484a35
 Image ID: 804c37249306321b90bbfa07d7cfe02d5f3d056971eb069d7bc37647de484a35
 Parent: 4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125
-Checksum: tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 Layer size: 1536
 Done
 ````

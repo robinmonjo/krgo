@@ -1,7 +1,7 @@
 GOPATH:=`pwd`/vendor:$(GOPATH)  #inject vendored package
 GOPATH:=`pwd`/vendor/src/github.com/docker/docker/vendor:$(GOPATH) #inject docker vendored package
 
-VERSION:=1.4.1
+VERSION:=1.5.0
 HARDWARE=$(shell uname -m)
 
 build: vendor
