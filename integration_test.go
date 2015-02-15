@@ -19,8 +19,6 @@ var (
 	privateImage    = "robinmonjo/busybox"
 	gitImage        = "busybox:latest"
 
-	rootfs = "tmp_rootfs"
-
 	minimalLinuxRootfs = []string{"bin", "dev", "etc", "home", "lib", "mnt", "opt", "proc", "root", "run", "sbin", "sys", "tmp", "usr", "var"}
 )
 
@@ -119,7 +117,7 @@ func TestPullAndPushImage(t *testing.T) {
 			t.Fatal("Expected branch", expectedbranches[i], "got", br)
 		}
 	}
-	fmt.Printf("OK\n")
+	fmt.Printf("Ok\n")
 
 	//2: make some modification to it
 	creds := os.Getenv(CREDS_ENV)
