@@ -77,7 +77,7 @@ push image modifications to the docker hub (see `krgo push`)
 ###krgo push
 
 Push an image downloaded with the `-g` option to the docker hub
-(a [docker hub account](https://hub.docker.com/account/signup/) is needed).
+(a [docker hub account](https://hub.docker.com/account/signup/) is needed). Images downloaded with the `-v2` flag can't be pushed at this time as registry v2 is not yet fully operational.
 
 In order to push your modification you **must commit** them beforehand:
 
