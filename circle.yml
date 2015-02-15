@@ -1,0 +1,7 @@
+dependencies:
+  pre:
+    - make vendor
+
+test:
+  override:
+    - make test
