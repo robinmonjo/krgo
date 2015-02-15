@@ -7,10 +7,10 @@ machine:
 
 checkout:
   pre:
-    - mkdir -p /home/ubuntu/go/src/github.com/robinmonjo
+    - mkdir -p /home/ubuntu/go/src/github.com/robinmonjo/krgo
 
   override:
-    - git clone https://github.com/robinmonjo/cargo.git /home/ubuntu/go/src/github.com/robinmonjo
+    - git clone https://github.com/robinmonjo/cargo.git /home/ubuntu/go/src/github.com/robinmonjo/krgo
 
 
 dependencies:
@@ -21,4 +21,4 @@ test:
   pre:
     - go version
   override:
-    - sudo -E bash -c 'cd /home/ubuntu/go/src/github.com/robinmonjo/cargo GOPATH=/home/ubuntu/go PATH=$PATH:/usr/local/go/bin:$GOPATH/bin make test'
+    - sudo -E bash -c 'cd /home/ubuntu/go/src/github.com/robinmonjo/krgo GOPATH=/home/ubuntu/go PATH=$PATH:/usr/local/go/bin:$GOPATH/bin make test'
