@@ -1,7 +1,7 @@
 dependencies:
-  pre:
+  override:
     - make vendor
 
 test:
   override:
-    - make test
+    - sudo make test
