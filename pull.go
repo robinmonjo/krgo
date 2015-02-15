@@ -10,23 +10,30 @@ import (
 	"github.com/docker/docker/pkg/archive"
 )
 
-const MAX_DL_CONCURRENCY int = 7
+const (
+	MAX_DL_CONCURRENCY = 7
+	ONE_MB             = 1000000
+)
 
-//download a flattened dowker image
-func (s *hubSession) pullImage(imageName, imageTag, rootfsDest string) error {
+//krgo pull image -r rootfs
+//download a flattened docker image from the V1 registry
+func (s *registrySession) pullImage(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, false)
 }
 
-//download an image putting each layer in a git branch "on top of each other"
-func (s *hubSession) pullRepository(imageName, imageTag, rootfsDest string) error {
+//krgo pull image -r rootfs -g
+//download a docker image from the V1 registry putting each layer in a git branch "on top of each other"
+func (s *registrySession) pullRepository(imageName, imageTag, rootfsDest string) error {
 	return s.downloadImage(imageName, imageTag, rootfsDest, true)
 }
 
-func (s *hubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLayering bool) error {
+//pulling using V1 registry
+func (s *registrySession) downloadImage(imageName, imageTag, rootfsDest string, gitLayering bool) error {
 	repoData, err := s.GetRepositoryData(imageName)
 	if err != nil {
 		return err
 	}
+	fmt.Printf("Registry endpoint: %v\n", repoData.Endpoints)
 
 	tagsList, err := s.GetRemoteTags(repoData.Endpoints, imageName, repoData.Tokens)
 	if err != nil {
@@ -77,20 +84,19 @@ func (s *hubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 	for i := len(imageHistory) - 1; i >= 0; i-- {
 
 		//for each layers
-		layerId := imageHistory[i]
-
-		fmt.Printf("\t%v ... ", layerId)
+		layerID := imageHistory[i]
 
 		if gitLayering {
 			//create a git branch
-			if _, err = gitRepo.checkoutB("layer_" + strconv.Itoa(cpt) + "_" + layerId); err != nil {
+			if _, err = gitRepo.checkoutB(newBranch(cpt, layerID)); err != nil {
 				return err
 			}
 		}
 
 		//download and untar the layer
-		job := queue.CompletedJobWithID(layerId).(*PullingJob)
-		err = archive.ApplyLayer(rootfsDest, job.LayerData)
+		job := queue.CompletedJobWithID(layerID).(*PullingJob)
+		fmt.Printf("\t%s (%.2f MB) ... ", layerID, float64(job.LayerSize)/ONE_MB)
+		_, err = archive.ApplyLayer(rootfsDest, job.LayerData)
 		job.LayerData.Close()
 		if err != nil {
 			return err
@@ -102,8 +108,7 @@ func (s *hubSession) downloadImage(imageName, imageTag, rootfsDest string, gitLa
 		}
 
 		if gitLayering {
-			_, err = gitRepo.addAllAndCommit("adding layer " + strconv.Itoa(cpt))
-			if err != nil {
+			if _, err = gitRepo.addAllAndCommit("adding layer " + layerID); err != nil {
 				return err
 			}
 		}

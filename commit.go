@@ -6,15 +6,15 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"strconv"
 	"time"
 
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/tarsum"
 	"github.com/docker/docker/utils"
 )
 
+//krgo commit -r rootfs
+//commit current changes in a new properly formated branch ready for pushing
 func commitChanges(rootfs, message string) error {
 	if !isGitRepo(rootfs) {
 		return fmt.Errorf("%v not a git repository", rootfs)
@@ -33,13 +33,7 @@ func commitChanges(rootfs, message string) error {
 		return err
 	}
 
-	layerTarSum, err := tarsum.NewTarSum(layerData, true, tarsum.VersionDev)
-	if err != nil {
-		return err
-	}
-
 	//fill new infos
-	image.Checksum = layerTarSum.Sum(nil)
 	image.Parent = image.ID
 	image.ID = utils.GenerateRandomID()
 	image.Created = time.Now()
@@ -67,8 +61,8 @@ func commitChanges(rootfs, message string) error {
 	}
 
 	//commit the changes in a new branch
-	brNumber, _ := gitRepo.countBranch()
-	br := "layer_" + strconv.Itoa(brNumber) + "_" + image.ID
+	n, _ := gitRepo.countBranch()
+	br := newBranch(n, image.ID)
 	if _, err = gitRepo.checkoutB(br); err != nil {
 		return err
 	}
@@ -77,7 +71,7 @@ func commitChanges(rootfs, message string) error {
 	}
 
 	fmt.Printf("Changes commited in %v\n", br)
-	fmt.Printf("Image ID: %v\nParent: %v\nChecksum: %v\nLayer size: %v\n", image.ID, image.Parent, image.Checksum, image.Size)
+	fmt.Printf("Image ID: %v\nParent: %v\nChecksum: %v\nLayer size: %v\n", image.ID, image.Parent, image.Size)
 
 	return nil
 }

@@ -6,9 +6,13 @@ import (
 	"os"
 
 	"github.com/codegangsta/cli"
+	"github.com/docker/docker/dockerversion"
 )
 
-const VERSION string = "1.4.1"
+const (
+	VERSION        = "1.5.0"
+	DOCKER_VERSION = "1.5.0"
+)
 
 var (
 	//shared flags
@@ -19,12 +23,13 @@ var (
 	pullCmd = cli.Command{
 		Name:        "pull",
 		Usage:       "pull an image",
-		Description: "pull image [-r rootfs] [-u user] [-g]",
+		Description: "pull image [-r rootfs] [-u user] [-g] [-v2]",
 		Action:      pull,
 		Flags: []cli.Flag{
 			cli.BoolFlag{Name: "g, git-layering", Usage: "use git layering (needed to push afteward)"},
 			userFlag,
 			rootfsFlag,
+			cli.BoolFlag{Name: "v2", Usage: "use docker V2 registry (push not available yet for images pulled with this flag)"},
 		},
 	}
 
@@ -51,10 +56,14 @@ var (
 	}
 )
 
+func init() {
+	dockerversion.VERSION = DOCKER_VERSION //needed otherwise error 500 on push
+}
+
 func main() {
 	app := cli.NewApp()
-	app.Name = "cargo"
-	app.Version = VERSION
+	app.Name = "krgo"
+	app.Version = "krgo " + VERSION + " (docker " + DOCKER_VERSION + ")"
 	app.Usage = "docker hub without docker"
 	app.Author = "Robin Monjo"
 	app.Email = "robinmonjo@gmail.com"
@@ -68,15 +77,23 @@ func pull(c *cli.Context) {
 	userName, password := parseCredentials(c.String("user"))
 
 	fmt.Printf("Pulling image %v:%v ...\n", imageName, imageTag)
-	session, err := newHubSession(imageName, userName, password)
+	session, err := newRegistrySession(userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if c.Bool("git-layering") {
-		err = session.pullRepository(imageName, imageTag, c.String("rootfs"))
+		if c.Bool("v2") {
+			err = session.pullRepositoryV2(imageName, imageTag, c.String("rootfs"))
+		} else {
+			err = session.pullRepository(imageName, imageTag, c.String("rootfs"))
+		}
 	} else {
-		err = session.pullImage(imageName, imageTag, c.String("rootfs"))
+		if c.Bool("v2") {
+			err = session.pullImageV2(imageName, imageTag, c.String("rootfs"))
+		} else {
+			err = session.pullImage(imageName, imageTag, c.String("rootfs"))
+		}
 	}
 	if err != nil {
 		log.Fatal(err)
@@ -98,7 +115,7 @@ func push(c *cli.Context) {
 	userName, password := parseCredentials(c.String("user"))
 
 	fmt.Printf("Pushing image %v:%v ...\n", imageName, imageTag)
-	session, err := newHubSession(imageName, userName, password)
+	session, err := newRegistrySession(userName, password)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -107,5 +124,5 @@ func push(c *cli.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Done: https://registry.hub.docker.com/u/%v\n", imageName)
+	fmt.Printf("Done: https://registry.hub.docker.com/%s/%s\n", userName, imageName)
 }

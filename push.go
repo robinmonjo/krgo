@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
-	"strings"
 
 	"github.com/docker/docker/registry"
 )
 
-func (s *hubSession) pushRepository(imageName, imageTag, rootfs string) error {
+func (s *registrySession) pushRepository(imageName, imageTag, rootfs string) error {
 	if !isGitRepo(rootfs) {
 		return fmt.Errorf("%v not a git repository", rootfs)
 	}
@@ -19,10 +18,9 @@ func (s *hubSession) pushRepository(imageName, imageTag, rootfs string) error {
 	if err != nil {
 		return err
 	}
-	var imageIds []string = make([]string, len(branches), len(branches))
+	var imageIds []string = make([]string, len(branches))
 	for _, br := range branches {
-		idx, _ := exportLayerNumberFromBranch(br)
-		imageIds[idx] = strings.Split(br, "_")[2] //branch format layer_N_imageId
+		imageIds[br.number()] = br.imageID()
 	}
 
 	fmt.Printf("Pushing %d layers:\n", len(imageIds))
@@ -41,7 +39,7 @@ func (s *hubSession) pushRepository(imageName, imageTag, rootfs string) error {
 	//make sure existing branches are pushed
 	for i, imageId := range imageIds {
 		fmt.Printf("\t%v ... ", imageId)
-		if s.LookupRemoteImage(imageId, ep, repoData.Tokens) {
+		if err := s.LookupRemoteImage(imageId, ep, repoData.Tokens); err == nil {
 			fmt.Printf("done (already pushed)\n")
 		} else {
 			err = s.pushImageLayer(gitRepo, branches[i], imageId, ep, repoData.Tokens)
@@ -69,13 +67,15 @@ func (s *hubSession) pushRepository(imageName, imageTag, rootfs string) error {
 	return nil
 }
 
-func (s *hubSession) pushImageLayer(gitRepo *gitRepo, branch, imgID, ep string, token []string) error {
-	if _, err := gitRepo.checkout(branch); err != nil {
+func (s *registrySession) pushImageLayer(gitRepo *gitRepo, br branch, imgID, ep string, token []string) error {
+	if _, err := gitRepo.checkout(br); err != nil {
 		return err
 	}
 
 	jsonRaw, err := ioutil.ReadFile(path.Join(gitRepo.Path, "json"))
 	if err != nil {
+		//if json is not found, this probably means that user pull the image using V2 registry
+		fmt.Printf("Hint: you can't push images pulled using the -v2 flag yet")
 		return err
 	}
 
@@ -88,7 +88,7 @@ func (s *hubSession) pushImageLayer(gitRepo *gitRepo, branch, imgID, ep string, 
 		return err
 	}
 
-	layerData, err := gitRepo.exportChangeSet(branch)
+	layerData, err := gitRepo.exportChangeSet(br)
 	if err != nil {
 		return err
 	}

@@ -40,7 +40,7 @@ clone() {
 }
 
 #docker dependencies
-clone git github.com/docker/docker v1.4.1
+clone git github.com/docker/docker v1.5.0
 
 clone git github.com/codegangsta/cli v1.2.0
 

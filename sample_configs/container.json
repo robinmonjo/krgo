@@ -180,7 +180,7 @@
         "HOSTNAME=koye",
         "TERM=xterm"
     ],
-    "hostname": "cargo-demo",
+    "hostname": "krgo-demo",
     "namespaces": [
         {"type": "NEWIPC"},
         {"type": "NEWNS"},

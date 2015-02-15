@@ -13,26 +13,56 @@ import (
 const CREDS_ENV string = "DHUB_CREDS"
 
 var (
-	cargoBinary  string   = "cargo"
-	testImages   []string = []string{"busybox", "progrium/busybox"}
-	privateImage string   = "robinmonjo/busybox"
-	gitImage     string   = "busybox:latest"
+	krgo            = &krgoBin{"krgo"}
+	testImages      = []string{"busybox", "progrium/busybox"}
+	testV2RegImages = []string{"busybox"}
+	privateImage    = "robinmonjo/busybox"
+	gitImage        = "busybox:latest"
 
-	rootfs string = "tmp_rootfs"
-
-	minimalLinuxRootfs []string = []string{"bin", "dev", "etc", "home", "lib", "mnt", "opt", "proc", "root", "run", "sbin", "sys", "tmp", "usr", "var", "json"}
+	minimalLinuxRootfs = []string{"bin", "dev", "etc", "home", "lib", "mnt", "opt", "proc", "root", "run", "sbin", "sys", "tmp", "usr", "var"}
 )
 
-func itAssertErrNil(err error, t *testing.T) {
+type krgoBin struct {
+	binary string
+}
+
+func (krgo *krgoBin) exec(args ...string) error {
+	cmd := exec.Command(krgo.binary, args...)
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatal(err)
+		return fmt.Errorf("Error: %v, Out: %s", err, string(out))
 	}
+	return nil
 }
 
 func TestPullImages(t *testing.T) {
 	for _, imageName := range testImages {
-		fmt.Printf("Testing %v image ... ", imageName)
-		pullImage(imageName, "", false, t, true)
+		rootfs := uniqueStr("rootfs")
+		fmt.Printf("Testing %s image ... ", imageName)
+		err := krgo.exec("pull", imageName, "-r", rootfs)
+		defer os.RemoveAll(rootfs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := checkFS(rootfs); err != nil {
+			t.Fatal(err)
+		}
+		fmt.Printf("Ok\n")
+	}
+}
+
+func TestPullImagesV2(t *testing.T) {
+	for _, imageName := range testV2RegImages {
+		rootfs := uniqueStr("rootfs")
+		fmt.Printf("Testing registry v2 with %s image ... ", imageName)
+		err := krgo.exec("pull", imageName, "-r", rootfs, "-v2")
+		defer os.RemoveAll(rootfs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := checkFS(rootfs); err != nil {
+			t.Fatal(err)
+		}
 		fmt.Printf("Ok\n")
 	}
 }
@@ -40,22 +70,40 @@ func TestPullImages(t *testing.T) {
 func TestPullPrivateImage(t *testing.T) {
 	creds := os.Getenv(CREDS_ENV)
 	if creds == "" {
-		fmt.Printf("Skipping private image test (%v not set)\n", CREDS_ENV)
+		fmt.Printf("Skipping private image test (%s not set)\n", CREDS_ENV)
 		return
 	}
-	fmt.Printf("Testing private %v image ... ", privateImage)
-	pullImage(privateImage, creds, true, t, true)
+	fmt.Printf("Testing private %s image ... ", privateImage)
+	rootfs := uniqueStr("rootfs")
+	err := krgo.exec("pull", privateImage, "-r", rootfs, "-u", creds)
+	defer os.RemoveAll(rootfs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := checkFS(rootfs); err != nil {
+		t.Fatal(err)
+	}
 	fmt.Printf("Ok\n")
 }
 
-func TestPullImageWithGit(t *testing.T) {
-	fmt.Printf("Testing using git layering %v image ... ", gitImage)
-	pullImage(gitImage, "", true, t, false)
+func TestPullAndPushImage(t *testing.T) {
+	//1: download the image
+	fmt.Printf("Testing pulling and pushing on image %s\n\tPulling ... ", gitImage)
+	rootfs := uniqueStr("rootfs")
+	err := krgo.exec("pull", gitImage, "-r", rootfs, "-g")
+	defer os.RemoveAll(rootfs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := checkFS(rootfs); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("Ok\n")
 
 	gitRepo, _ := newGitRepo(rootfs)
 	branches, _ := gitRepo.branch()
 
-	fmt.Printf("Checking git layering ... ")
+	fmt.Printf("\tChecking git layering ... ")
 
 	expectedbranches := []string{
 		"layer_0_511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158",
@@ -64,82 +112,83 @@ func TestPullImageWithGit(t *testing.T) {
 		"layer_3_4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125",
 	}
 
-	for i, branch := range branches {
-		if branch != expectedbranches[i] {
-			t.Fatal("Expected branch", expectedbranches[i], "got", branch)
+	for i, br := range branches {
+		if br.string() != expectedbranches[i] {
+			t.Fatal("Expected branch", expectedbranches[i], "got", br)
 		}
 	}
-	fmt.Printf("OK\n")
-}
+	fmt.Printf("Ok\n")
 
-func TestPushImage(t *testing.T) {
-	//pushing the previously downloaded image into a random folder
-	defer os.RemoveAll(rootfs)
+	//2: make some modification to it
 	creds := os.Getenv(CREDS_ENV)
 	if creds == "" {
-		fmt.Printf("Skipping push image test (%v not set)\n", CREDS_ENV)
+		fmt.Printf("Skipping push image test (%s not set)\n", CREDS_ENV)
 		return
 	}
 
-	timestamp := time.Now().Unix()
-	timestampStr := strconv.FormatInt(timestamp, 10)
-	newImageNameTag := "robinmonjo/cargo_bb_" + timestampStr + ":testing"
+	fmt.Printf("\tModifying and commiting the image ... ")
+	newImageName := uniqueStr("robinmonjo/krgo_bb_")
 
-	fmt.Printf("Testing push image %v ... ", newImageNameTag)
 	//make some modifications on the image
-	f, err := os.Create(path.Join(rootfs, "modification.txt"))
-	itAssertErrNil(err, t)
+	createdFile := "modification.txt"
+	deletedFile := "sbin/ifconfig"
+
+	f, err := os.Create(path.Join(rootfs, createdFile))
+	if err != nil {
+		t.Fatal(err)
+	}
 	f.Close()
 
-	//commit the image
-	commitImage("commit message", t)
-	fmt.Printf("commit ok ... ")
+	err = os.RemoveAll(path.Join(rootfs, deletedFile))
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	//push it
+	//3: commit the image
+	err = krgo.exec("commit", "-r", rootfs, "-m", "commit message")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("Ok\n")
 
-	pushImage(newImageNameTag, creds, t)
+	//4: push the image
+	fmt.Printf("\tPushing %s into %s image ... ", gitImage, newImageName)
+	err = krgo.exec("push", newImageName, "-r", rootfs, "-u", creds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("Ok\n")
+
+	//5: donload the image and make sure modifications where applied
+	fmt.Printf("\tPulling %s image to make sure modifications were properly applied ... ", newImageName)
+	rootfsNew := uniqueStr("rootfs")
+	err = krgo.exec("pull", newImageName, "-r", rootfsNew)
+	defer os.RemoveAll(rootfsNew)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !fileExists(path.Join(rootfsNew, createdFile)) {
+		t.Fatal("expected file %s doesn't exists", createdFile)
+	}
+
+	if fileExists(path.Join(rootfsNew, deletedFile)) {
+		t.Fatal("file %s should have been deleted", deletedFile)
+	}
+	fmt.Printf("Ok\n")
 }
 
-//helpers
-func pullImage(imageNameTag, credentials string, gitLayering bool, t *testing.T, cleanup bool) {
-	if cleanup {
-		defer os.RemoveAll(rootfs)
-	}
-	args := []string{"pull", imageNameTag, "-r", rootfs}
-	if credentials != "" {
-		args = append(args, []string{"-u", credentials}...)
-	}
-	if gitLayering {
-		args = append(args, "-g")
-	}
-
-	cmd := exec.Command(cargoBinary, args...)
-	err := cmd.Start()
-	itAssertErrNil(err, t)
-
-	err = cmd.Wait()
-	itAssertErrNil(err, t)
-
-	fmt.Printf("Checking FS ... ")
+func checkFS(rootfs string) error {
 	for _, file := range minimalLinuxRootfs {
 		if !fileExists(path.Join(rootfs, file)) {
-			t.Fatalf("expected file %v doesn't exists\n", file)
+			return fmt.Errorf("expected file %s doesn't exists", file)
 		}
 	}
+	return nil
 }
 
-func pushImage(imageNameTag, credentials string, t *testing.T) {
-	cmd := exec.Command(cargoBinary, "push", imageNameTag, "-r", rootfs, "-u", credentials)
-	err := cmd.Start()
-	itAssertErrNil(err, t)
-	err = cmd.Wait()
-	itAssertErrNil(err, t)
-}
-
-func commitImage(message string, t *testing.T) {
-	cmd := exec.Command(cargoBinary, "commit", "-r", rootfs, "-m", message)
-	err := cmd.Start()
-	itAssertErrNil(err, t)
-	err = cmd.Wait()
-	itAssertErrNil(err, t)
+func uniqueStr(prefix string) string {
+	timestamp := time.Now().Unix()
+	timestampStr := strconv.FormatInt(timestamp, 10)
+	return prefix + timestampStr
 }
