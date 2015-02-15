@@ -5,6 +5,14 @@ machine:
     - sudo tar -C /usr/local -xzf go.tar.gz
     - sudo chmod a+w /usr/local/go/src/
 
+checkout:
+  pre:
+    - mkdir -p /home/ubuntu/go/src/github.com/robinmonjo
+
+  override:
+    - git clone https://github.com/robinmonjo/cargo.git /home/ubuntu/go/src/github.com/robinmonjo
+
+
 dependencies:
   override:
     - make vendor
@@ -13,4 +21,4 @@ test:
   pre:
     - go version
   override:
-    - sudo -E bash -c 'GOPATH=/home/ubuntu PATH=$PATH:/usr/local/go/bin:$GOPATH/bin make test'
+    - sudo -E bash -c 'GOPATH=/home/ubuntu/go PATH=$PATH:/usr/local/go/bin:$GOPATH/bin make test'
