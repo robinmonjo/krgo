@@ -70,7 +70,7 @@ push image modifications to the docker hub (see `krgo push`)
 - `-v2` flag makes `krgo` download the image using docker [v2 registry](https://github.com/docker/docker-registry/issues/612). Because everything is not yet production ready, images pulled with the `-v2` flag won't be pushable to the docker hub
 
 **Examples**:
-- `krgo pull debian` #library/debian:latest
+- `krgo pull debian -v2 #library/debian:latest using v2 registry`
 - `krgo pull progrium/busybox -r busybox -g`
 - `krgo pull robinmonjo/debian:latest -r debian -u $DHUB_CREDS`
 
