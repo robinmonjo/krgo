@@ -21,4 +21,4 @@ test:
   pre:
     - go version
   override:
-    - sudo -E bash -c 'GOPATH=/home/ubuntu/go PATH=$PATH:/usr/local/go/bin:$GOPATH/bin make test'
+    - sudo -E bash -c 'cd /home/ubuntu/go/src/github.com/robinmonjo/cargo GOPATH=/home/ubuntu/go PATH=$PATH:/usr/local/go/bin:$GOPATH/bin make test'
