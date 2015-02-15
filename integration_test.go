@@ -70,7 +70,7 @@ func TestPullImagesV2(t *testing.T) {
 func TestPullPrivateImage(t *testing.T) {
 	creds := os.Getenv(CREDS_ENV)
 	if creds == "" {
-		fmt.Printf("Skipping private image test (%S not set)\n", CREDS_ENV)
+		fmt.Printf("Skipping private image test (%s not set)\n", CREDS_ENV)
 		return
 	}
 	fmt.Printf("Testing private %s image ... ", privateImage)
