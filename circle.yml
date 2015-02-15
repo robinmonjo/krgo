@@ -21,7 +21,6 @@ dependencies:
 
 test:
   pre:
-    - cd /home/ubuntu/go/src/github.com/robinmonjo/krgo
     - go version
   override:
-    - sudo -E bash -c 'GOPATH=/home/ubuntu/go PATH=$PATH:/usr/local/go/bin:$GOPATH/bin make test'
+    - sudo -E bash -c 'cd cd /home/ubuntu/go/src/github.com/robinmonjo/krgo && GOPATH=/home/ubuntu/go PATH=$PATH:/usr/local/go/bin:$GOPATH/bin make test'
