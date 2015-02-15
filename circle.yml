@@ -4,4 +4,4 @@ dependencies:
 
 test:
   override:
-    - sudo make test
+    - sudo -E bash -c 'make test'
