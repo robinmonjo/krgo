@@ -107,7 +107,7 @@ Push the image in the `rootfs` directory onto the docker hub.
 - `krgo push username/debian:krgo -u $DHUB_CREDS`
 - `krgo push username/busybox -r busybox -u $DHUB_CREDS`
 
-##Dependencies
+##Dependency
 
 If you plan to use `krgo` to push images, you will need git >= 1.8
 
