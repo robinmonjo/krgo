@@ -7,9 +7,8 @@ HARDWARE=$(shell uname -m)
 build: vendor
 	GOPATH=$(GOPATH) go build
 
-test: vendor
-	GOPATH=$(GOPATH) go install
-	GOPATH=$(GOPATH) go test
+test: vendor build
+	GOPATH=$(GOPATH) PATH=$(PATH):`pwd` go test
 
 release:
 	mkdir -p release
