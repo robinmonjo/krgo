@@ -22,7 +22,7 @@ var (
 	}
 )
 
-func gtAssertErrNil(err error, t *testing.T) {
+func asserErrNil(err error, t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func gtAssertErrNil(err error, t *testing.T) {
 func TestGitFlow(t *testing.T) {
 	fmt.Printf("Testing git ... ")
 	r, err := newGitRepo(REPO_PATH)
-	gtAssertErrNil(err, t)
+	asserErrNil(err, t)
 
 	defer os.RemoveAll(REPO_PATH)
 
@@ -39,21 +39,21 @@ func TestGitFlow(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		br := branches[i]
 		_, err = r.checkoutB(br)
-		gtAssertErrNil(err, t)
+		asserErrNil(err, t)
 
 		curBr, err := r.currentBranch()
-		gtAssertErrNil(err, t)
+		asserErrNil(err, t)
 
 		if br != curBr {
 			t.Fatalf("current branch: %v expected %v", curBr, br)
 		}
 
 		f, err := os.Create(path.Join(r.Path, "br"+strconv.Itoa(i)+".txt"))
-		gtAssertErrNil(err, t)
+		asserErrNil(err, t)
 		f.Close()
 
 		_, err = r.addAllAndCommit("commit message")
-		gtAssertErrNil(err, t)
+		asserErrNil(err, t)
 	}
 
 	exportChangeSet(r, branches[0], []string{"br0.txt"}, []string{"br1.txt", "br2.txt", ".git"}, t)
@@ -62,23 +62,23 @@ func TestGitFlow(t *testing.T) {
 
 	//Modify files
 	err = ioutil.WriteFile(path.Join(r.Path, "br0.txt"), []byte("hello world !!"), 0777)
-	gtAssertErrNil(err, t)
+	asserErrNil(err, t)
 	_, err = r.addAllAndCommit("commit message")
-	gtAssertErrNil(err, t)
+	asserErrNil(err, t)
 	exportChangeSet(r, branches[2], []string{"br2.txt", "br0.txt"}, []string{"br1.txt"}, t)
 
 	//Delete file
 	err = os.Remove(path.Join(r.Path, "br1.txt"))
-	gtAssertErrNil(err, t)
+	asserErrNil(err, t)
 	_, err = r.addAllAndCommit("commit message")
 	exportChangeSet(r, branches[2], []string{"br2.txt", ".wh.br1.txt", "br0.txt"}, []string{"br1.txt"}, t)
 
 	//Uncommited changes
 	_, err = r.checkoutB(branches[3])
-	gtAssertErrNil(err, t)
+	asserErrNil(err, t)
 
 	f, err := os.Create(path.Join(r.Path, "br3.txt"))
-	gtAssertErrNil(err, t)
+	asserErrNil(err, t)
 	f.Close()
 	exportUncommitedChangeSet(r, []string{"br3.txt"}, []string{"br1.txt", ".wh.br1.txt", "br0.txt", "br2.txt"}, t)
 	fmt.Printf("OK\n")
@@ -86,21 +86,21 @@ func TestGitFlow(t *testing.T) {
 
 func exportUncommitedChangeSet(r *gitRepo, expectedFiles, unexpectedFiles []string, t *testing.T) {
 	tar, err := r.exportUncommitedChangeSet()
-	gtAssertErrNil(err, t)
+	asserErrNil(err, t)
 	defer tar.Close()
 	checkTarCorrect(tar, expectedFiles, unexpectedFiles, t)
 }
 
 func exportChangeSet(r *gitRepo, br branch, expectedFiles, unexpectedFiles []string, t *testing.T) {
 	tar, err := r.exportChangeSet(br)
-	gtAssertErrNil(err, t)
+	asserErrNil(err, t)
 	defer tar.Close()
 	checkTarCorrect(tar, expectedFiles, unexpectedFiles, t)
 }
 
 func checkTarCorrect(tar archive.Archive, expectedFiles, unexpectedFiles []string, t *testing.T) {
 	err := archive.Untar(tar, "/tmp/tar", nil)
-	gtAssertErrNil(err, t)
+	asserErrNil(err, t)
 	defer os.RemoveAll("/tmp/tar")
 	filesShouldExist(true, expectedFiles, "/tmp/tar", t)
 	filesShouldExist(false, unexpectedFiles, "/tmp/tar", t)
